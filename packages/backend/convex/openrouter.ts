@@ -45,23 +45,37 @@ export class OpenRouterClient {
   async createChatCompletion(
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.SITE_URL || "https://soravur.com",
-        "X-Title": "Soravur Exam Helper",
-      },
-      body: JSON.stringify(request),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+    try {
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.SITE_URL || "https://soravur.com",
+          "X-Title": "Soravur Exam Helper",
+        },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+      }
+
+      return response.json() as Promise<ChatCompletionResponse>;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Request timeout - model took too long to respond");
+      }
+      throw error;
     }
-
-    return response.json() as Promise<ChatCompletionResponse>;
   }
 }
 
@@ -107,7 +121,10 @@ FORMATLASH QOIDALARI:
 - Sarlavhalar uchun ### ishlatining
 - Ro'yxatlar uchun - yoki 1. 2. 3. formatdan foydalaning
 - Muhim so'zlarni **qalin** qiling
-- Matematik formulalar uchun LaTeX: inline uchun \\(...\\), blok uchun \\[...\\]
+- Matematik formulalar uchun LaTeX formatidan foydalaning:
+  * Inline matematik ifodalar uchun $...$ (masalan: $x^2 + y^2 = r^2$)
+  * Blok/displey matematik ifodalar uchun $$...$$ (alohida qatorda)
+  * Formulalarni to'liq LaTeX sintaksisida yozing (\\frac, \\sqrt, \\sum, \\int, va h.k.)
 - Kod uchun \`kod\` yoki ko'p qatorli kod uchun \`\`\` ishlatining
 
 JAVOB STRUKTURASI:

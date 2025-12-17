@@ -128,11 +128,22 @@ export const generateAssistantReply = action({
       const completion = await client.createChatCompletion({
         model: selectedModel,
         messages: conversationMessages,
-        max_tokens: 1000,
+        max_tokens: 3000,
         temperature: 0.7,
       });
 
-      const assistantContent = completion.choices[0].message.content;
+      const choice = completion.choices[0];
+      const assistantContent = choice?.message?.content || "";
+
+      if (!assistantContent) {
+        throw new Error("Empty response from AI model");
+      }
+
+      // Check if response was truncated
+      if (choice?.finish_reason === "length") {
+        console.warn("Response was truncated due to max_tokens limit");
+        // Continue anyway - we'll save the partial response
+      }
 
       // Double-check the response is in Uzbek
       if (!isLikelyUzbek(assistantContent)) {
@@ -149,11 +160,21 @@ export const generateAssistantReply = action({
         const retryCompletion = await client.createChatCompletion({
           model: selectedModel,
           messages: retryMessages,
-          max_tokens: 1000,
+          max_tokens: 3000,
           temperature: 0.5,
         });
 
-        const retryContent = retryCompletion.choices[0].message.content;
+        const retryChoice = retryCompletion.choices[0];
+        const retryContent = retryChoice?.message?.content || "";
+
+        if (!retryContent) {
+          throw new Error("Empty response from AI model on retry");
+        }
+
+        // Check if retry response was truncated
+        if (retryChoice?.finish_reason === "length") {
+          console.warn("Retry response was truncated due to max_tokens limit");
+        }
 
         // Save the retry response
         return await ctx.runMutation(api.messages.appendAssistantMessage, {
@@ -212,12 +233,34 @@ export const generateAssistantReply = action({
       return messageId;
     } catch (error) {
       console.error("OpenRouter API error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("Error details:", errorMessage);
+
+      // Determine error type and provide appropriate message
+      let userMessage =
+        "Kechirasiz, texnik muammo yuz berdi. Iltimos, keyinroq urinib ko'ring.";
+
+      if (
+        errorMessage.includes("timeout") ||
+        errorMessage.includes("ETIMEDOUT")
+      ) {
+        userMessage =
+          "Javob olishda vaqt tugadi. Iltimos, qaytadan urinib ko'ring.";
+      } else if (
+        errorMessage.includes("429") ||
+        errorMessage.includes("rate limit")
+      ) {
+        userMessage = "Juda ko'p so'rov yuborildi. Iltimos, bir oz kuting.";
+      } else if (errorMessage.includes("Empty response")) {
+        userMessage =
+          "Model javob bermadi. Iltimos, savolingizni soddaroq qilib qayta yuboring.";
+      }
 
       // Save error message
       return await ctx.runMutation(api.messages.appendAssistantMessage, {
         threadId: args.threadId,
-        content:
-          "Kechirasiz, texnik muammo yuz berdi. Iltimos, keyinroq urinib ko'ring.",
+        content: userMessage,
         model: selectedModel,
       });
     }
