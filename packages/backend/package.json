@@ -1,0 +1,23 @@
+{
+  "name": "@soravur/backend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "convex dev",
+    "dev:setup": "convex dev --configure --until-success"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "catalog:",
+    "@soravur/config": "workspace:*"
+  },
+  "dependencies": {
+    "convex": "catalog:",
+    "better-auth": "catalog:",
+    "@convex-dev/better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  }
+}
