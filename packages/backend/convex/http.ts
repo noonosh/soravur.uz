@@ -6,8 +6,6 @@ import type { Doc, Id } from "./_generated/dataModel";
 
 const http = httpRouter();
 
-authComponent.registerRoutes(http, createAuth, { cors: true });
-
 const SITE_URL = process.env.SITE_URL;
 
 function corsHeaders(request: Request): Record<string, string> {
@@ -258,5 +256,8 @@ http.route({
     );
   }),
 });
+
+// Register auth routes last to avoid conflicts with custom routes
+authComponent.registerRoutes(http, createAuth, { cors: true });
 
 export default http;
