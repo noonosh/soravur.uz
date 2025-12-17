@@ -26,21 +26,21 @@ const MODEL_OPTIONS: ModelOption[] = [
     name: "Matematika",
     description: "Matematik masalalar uchun",
     icon: <Calculator className="h-4 w-4" />,
-    model: "openai/gpt-4o-mini", // Better for math reasoning and available
+    model: "openai/gpt-oss-20b:free", // Free, excellent for math reasoning
   },
   {
     id: "literature",
     name: "Adabiyot",
     description: "Adabiyot va yozuv uchun",
     icon: <BookOpen className="h-4 w-4" />,
-    model: "google/gemini-2.0-flash-thinking-exp:free", // Google Gemini for literature
+    model: "google/gemini-2.0-flash-thinking-exp:free", // Free, great for literature and writing
   },
   {
     id: "programming",
     name: "Dasturlash",
     description: "Kod yozish va tushuntirish uchun",
     icon: <Code2 className="h-4 w-4" />,
-    model: "meta-llama/llama-3.2-3b-instruct:free", // Free model for coding
+    model: "kwaipilot/kat-coder-pro:free", // Free, specialized for coding
   },
 ];
 
@@ -62,11 +62,11 @@ export function ModelSelector({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 md:gap-2 h-9 px-2 md:px-3 w-full md:w-auto justify-start"
+          className="gap-2 h-9 px-4 w-full md:w-auto justify-center md:min-w-[160px]"
         >
           {currentModel.icon}
           <span className="font-medium text-sm">{currentModel.name}</span>
-          <ChevronDown className="h-3 w-3 opacity-50 ml-auto" />
+          <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

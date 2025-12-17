@@ -1,0 +1,14 @@
+# Soravur - AI Exam Assistant for Uzbekistan
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://soravur.com/sitemap.xml
+
+# Disallow auth endpoints
+Disallow: /api/auth/
+Disallow: /api/threads/
+
+# Allow public pages
+Allow: /$

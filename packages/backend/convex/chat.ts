@@ -8,7 +8,7 @@ import {
   type ChatCompletionMessage,
 } from "./openrouter";
 
-const DEFAULT_MODEL = "meta-llama/llama-3.2-3b-instruct:free";
+const DEFAULT_MODEL = "openai/gpt-5.2";
 const MAX_CONTEXT_MESSAGES = 20;
 
 export const generateAssistantReply = action({

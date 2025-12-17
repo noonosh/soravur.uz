@@ -1,0 +1,19 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Logo Background (Apple prefers no border radius, they add it) -->
+  <rect width="180" height="180" fill="url(#appleGradient)"/>
+  
+  <!-- Letter S -->
+  <path d="M90 52 C112 52, 124 62, 124 79 C124 96, 112 102, 90 107 C68 112, 56 118, 56 135 C56 152, 68 162, 90 162" 
+        stroke="white" 
+        stroke-width="14" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <!-- Gradient Definition -->
+  <defs>
+    <linearGradient id="appleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

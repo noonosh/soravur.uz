@@ -1,0 +1,43 @@
+{
+  "name": "Soravur - Imtihon Yordamchisi",
+  "short_name": "Soravur",
+  "description": "O'zbek tilida imtihonlarga tayyorgarlik uchun AI yordamchi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8b5cf6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Yangi suhbat",
+      "short_name": "Yangi",
+      "description": "Yangi suhbatni boshlash",
+      "url": "/?new=true",
+      "icons": []
+    }
+  ],
+  "lang": "uz",
+  "dir": "ltr"
+}

@@ -1,0 +1,19 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Logo Background -->
+  <rect width="192" height="192" rx="40" fill="url(#icon192Gradient)"/>
+  
+  <!-- Letter S -->
+  <path d="M96 55 C120 55, 132 66, 132 84 C132 102, 120 108, 96 114 C72 120, 60 126, 60 144 C60 162, 72 173, 96 173" 
+        stroke="white" 
+        stroke-width="15" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <!-- Gradient Definition -->
+  <defs>
+    <linearGradient id="icon192Gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
