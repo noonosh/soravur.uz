@@ -171,11 +171,32 @@ body {
 /* KaTeX overrides for better dark mode support */
 @layer utilities {
   .prose .katex-display {
-    @apply overflow-x-auto;
+    @apply overflow-x-auto overflow-y-hidden my-4 py-2;
+  }
+
+  .prose .katex {
+    @apply text-base;
+  }
+
+  .prose .katex-html {
+    @apply whitespace-normal;
   }
 
   .dark .prose .katex,
-  .dark .prose .katex-display {
+  .dark .prose .katex-display,
+  .dark .prose .katex * {
+    @apply text-foreground;
+  }
+
+  /* Ensure math formulas are visible in dark mode */
+  .dark .katex .mord,
+  .dark .katex .mbin,
+  .dark .katex .mrel,
+  .dark .katex .mop,
+  .dark .katex .mopen,
+  .dark .katex .mclose,
+  .dark .katex .mpunct,
+  .dark .katex .minner {
     @apply text-foreground;
   }
 

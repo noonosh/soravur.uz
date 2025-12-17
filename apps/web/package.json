@@ -26,7 +26,12 @@
     "@convex-dev/better-auth": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:",
-    "@soravur/backend": "workspace:*"
+    "@soravur/backend": "workspace:*",
+    "katex": "^0.16.27",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.10",
