@@ -26,6 +26,7 @@
     "dev:setup": "turbo -F @soravur/backend dev:setup"
   },
   "dependencies": {
+    "date-fns": "^4.1.0",
     "dotenv": "catalog:",
     "zod": "catalog:"
   },
