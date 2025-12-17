@@ -19,29 +19,29 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div
       className={cn(
-        "group flex gap-3 py-6 px-4 hover:bg-muted/50 transition-colors",
+        "group flex gap-2 md:gap-3 py-4 md:py-6 px-3 md:px-4 hover:bg-muted/50 transition-colors",
         isUser && "bg-muted/30"
       )}
     >
       <div className="flex-shrink-0 pt-1">
         {isUser ? (
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <User className="h-4 w-4 text-primary-foreground" />
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary flex items-center justify-center">
+            <User className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary-foreground" />
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <Bot className="h-4 w-4 text-white" />
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <Bot className="h-3.5 w-3.5 md:h-4 md:w-4 text-white" />
           </div>
         )}
       </div>
 
-      <div className="flex-1 space-y-2 overflow-hidden">
+      <div className="flex-1 space-y-2 overflow-hidden min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm">
             {isUser ? "Siz" : "Yordamchi"}
           </span>
           {!isUser && message.model && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
               {message.model.split("/")[1]?.split(":")[0] || "AI"}
             </span>
           )}
@@ -71,7 +71,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               code: ({ node, className, children, ...props }) => {
                 const match = /language-(\w+)/.exec(className || "");
                 const isInline = !match;
-                
+
                 if (isInline) {
                   return (
                     <code
@@ -82,7 +82,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     </code>
                   );
                 }
-                
+
                 return (
                   <div className="relative group my-4">
                     <pre className="bg-muted border rounded-lg p-4 overflow-x-auto">
@@ -99,10 +99,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
               ),
               // Custom list rendering
               ul: ({ children }) => (
-                <ul className="list-disc list-inside space-y-1 my-4">{children}</ul>
+                <ul className="list-disc list-inside space-y-1 my-4">
+                  {children}
+                </ul>
               ),
               ol: ({ children }) => (
-                <ol className="list-decimal list-inside space-y-1 my-4">{children}</ol>
+                <ol className="list-decimal list-inside space-y-1 my-4">
+                  {children}
+                </ol>
               ),
               // Custom heading rendering
               h1: ({ children }) => (
@@ -115,7 +119,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 <h3 className="text-lg font-bold mt-4 mb-2">{children}</h3>
               ),
               h4: ({ children }) => (
-                <h4 className="text-base font-semibold mt-3 mb-2">{children}</h4>
+                <h4 className="text-base font-semibold mt-3 mb-2">
+                  {children}
+                </h4>
               ),
               // Custom blockquote
               blockquote: ({ children }) => (

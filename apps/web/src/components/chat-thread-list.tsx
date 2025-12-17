@@ -40,7 +40,7 @@ export function ChatThreadList({
     <div className="space-y-3">
       <Button
         onClick={onNewThread}
-        className="w-full justify-start gap-2 h-10"
+        className="w-full justify-start gap-2 h-10 touch-manipulation"
         variant="ghost"
         size="sm"
       >
@@ -58,13 +58,13 @@ export function ChatThreadList({
             <button
               key={thread._id}
               className={cn(
-                "w-full text-left rounded-lg p-3 transition-all hover:bg-muted/50",
+                "w-full text-left rounded-lg p-3 transition-all hover:bg-muted/50 touch-manipulation active:scale-[0.98]",
                 selectedThreadId === thread._id &&
                   "bg-muted shadow-sm border border-border"
               )}
               onClick={() => onThreadSelect(thread._id)}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2.5">
                 <MessageCircle className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate leading-tight">

@@ -43,7 +43,7 @@ export function ChatComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex gap-3 items-end bg-background rounded-lg border shadow-sm p-3"
+      className="flex gap-2 md:gap-3 items-end bg-background rounded-lg border shadow-sm p-2 md:p-3"
     >
       <textarea
         ref={textareaRef}
@@ -52,14 +52,14 @@ export function ChatComposer({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={isLoading}
-        className="flex-1 min-h-[24px] max-h-[200px] bg-transparent text-sm resize-none outline-none placeholder:text-muted-foreground disabled:opacity-50"
+        className="flex-1 min-h-[24px] max-h-[200px] bg-transparent text-sm resize-none outline-none placeholder:text-muted-foreground disabled:opacity-50 py-1"
         rows={1}
       />
       <Button
         type="submit"
         disabled={!message.trim() || isLoading}
         size="sm"
-        className="rounded-full h-8 w-8 p-0"
+        className="rounded-full h-9 w-9 md:h-8 md:w-8 p-0 flex-shrink-0"
       >
         {isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin" />

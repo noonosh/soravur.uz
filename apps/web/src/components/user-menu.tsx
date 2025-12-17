@@ -22,15 +22,15 @@ export default function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="flex items-center gap-2 h-10 px-3 hover:bg-muted"
+          className="flex items-center gap-1.5 md:gap-2 h-10 px-2 md:px-3 hover:bg-muted touch-manipulation"
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
             {user?.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
-          <span className="font-medium text-sm max-w-[150px] truncate">
+          <span className="font-medium text-sm max-w-[100px] md:max-w-[150px] truncate hidden sm:inline">
             {user?.name || "User"}
           </span>
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <ChevronDown className="h-4 w-4 opacity-50 hidden sm:inline" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

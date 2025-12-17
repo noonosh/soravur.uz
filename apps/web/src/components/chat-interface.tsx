@@ -11,9 +11,10 @@ import {
   getModelByType,
   type ModelType,
 } from "./model-selector";
+import { Button } from "./ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { MessageCircle, Sparkles } from "lucide-react";
+import { MessageCircle, Sparkles, Menu, X } from "lucide-react";
 import type { Id } from "@soravur/backend/convex/_generated/dataModel";
 
 interface ChatInterfaceProps {
@@ -25,6 +26,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     useState<Id<"threads"> | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelType>("maths");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const threads = useQuery(api.threads.listThreads, { userId });
@@ -53,11 +55,17 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     try {
       const threadId = await createThread({ userId });
       setSelectedThreadId(threadId);
+      setSidebarOpen(false); // Close sidebar on mobile
       toast.success("Yangi suhbat yaratildi");
     } catch (error) {
       toast.error("Xatolik yuz berdi");
       console.error(error);
     }
+  };
+
+  const handleThreadSelect = (threadId: Id<"threads">) => {
+    setSelectedThreadId(threadId);
+    setSidebarOpen(false); // Close sidebar on mobile
   };
 
   const handleSendMessage = async (content: string) => {
@@ -103,12 +111,37 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden relative">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Thread list sidebar */}
-      <div className="w-80 border-r bg-muted/10 flex flex-col flex-shrink-0">
+      <div
+        className={`
+          fixed lg:static inset-y-0 left-0 z-50
+          w-80 border-r bg-background flex flex-col flex-shrink-0
+          transform transition-transform duration-300 ease-in-out
+          ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }
+        `}
+      >
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-lg">Suhbatlar</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
           <ModelSelector
             selectedModel={selectedModel}
@@ -119,7 +152,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           <ChatThreadList
             userId={userId}
             selectedThreadId={selectedThreadId || undefined}
-            onThreadSelect={setSelectedThreadId}
+            onThreadSelect={handleThreadSelect}
             onNewThread={handleNewThread}
           />
         </div>
@@ -127,36 +160,52 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col bg-background min-w-0">
+        {/* Mobile header with hamburger */}
+        <div className="lg:hidden border-b bg-background px-4 py-3 flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <ModelSelector
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+            />
+          </div>
+        </div>
         {/* Messages */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           {!selectedThreadId ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <div className="rounded-full bg-primary/10 p-6 mb-4">
-                <MessageCircle className="h-12 w-12 text-primary" />
+            <div className="flex flex-col items-center justify-center h-full text-center p-4 md:p-8">
+              <div className="rounded-full bg-primary/10 p-4 md:p-6 mb-3 md:mb-4">
+                <MessageCircle className="h-10 w-10 md:h-12 md:w-12 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">
+              <h3 className="text-lg md:text-xl font-semibold mb-2">
                 Yangi suhbatni boshlang
               </h3>
-              <p className="text-muted-foreground max-w-md">
+              <p className="text-sm md:text-base text-muted-foreground max-w-md px-4">
                 O'zbek tilida savolingizni yozing va men sizga imtihonlarga
                 tayyorgarlik ko'rishda yordam beraman
               </p>
             </div>
           ) : !messages ? (
-            <div className="space-y-4 p-8">
+            <div className="space-y-4 p-4 md:p-8">
               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-24 w-full" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <div className="rounded-full bg-gradient-to-br from-violet-500/20 to-purple-600/20 p-6 mb-4">
-                <Sparkles className="h-12 w-12 text-primary" />
+            <div className="flex flex-col items-center justify-center h-full text-center p-4 md:p-8">
+              <div className="rounded-full bg-gradient-to-br from-violet-500/20 to-purple-600/20 p-4 md:p-6 mb-3 md:mb-4">
+                <Sparkles className="h-10 w-10 md:h-12 md:w-12 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">
+              <h3 className="text-lg md:text-xl font-semibold mb-2">
                 Savolingizni yozing
               </h3>
-              <p className="text-muted-foreground max-w-md">
+              <p className="text-sm md:text-base text-muted-foreground max-w-md px-4">
                 Men sizga matematika, fizika, kimyo va boshqa fanlardan yordam
                 bera olaman. Qadamlab tushuntiraman.
               </p>
@@ -167,13 +216,13 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
                 <ChatMessage key={message._id} message={message} />
               ))}
               {isGenerating && (
-                <div className="flex gap-3 py-6 px-4 bg-muted/30 animate-pulse">
+                <div className="flex gap-2 md:gap-3 py-4 md:py-6 px-3 md:px-4 bg-muted/30 animate-pulse">
                   <div className="flex-shrink-0 pt-1">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                      <div className="h-3.5 w-3.5 md:h-4 md:w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     </div>
                   </div>
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 space-y-2 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm">Yordamchi</span>
                       <span className="text-xs text-muted-foreground">
@@ -193,7 +242,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         </div>
 
         {/* Composer */}
-        <div className="border-t bg-muted/5 p-4">
+        <div className="border-t bg-muted/5 p-3 md:p-4">
           <div className="max-w-3xl mx-auto">
             <ChatComposer onSend={handleSendMessage} isLoading={isGenerating} />
           </div>

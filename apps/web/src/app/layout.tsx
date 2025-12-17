@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../index.css";
 import Providers from "@/components/providers";
@@ -14,8 +14,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "soravur",
-  description: "soravur",
+  title: "Soravur - Imtihon Yordamchisi",
+  description: "O'zbek tilida imtihonlarga tayyorgarlik uchun AI yordamchi",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Soravur",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "white" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
 };
 
 export default function RootLayout({

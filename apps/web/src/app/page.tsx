@@ -28,16 +28,19 @@ function AuthenticatedApp() {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
-      <header className="h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-6 flex-shrink-0">
+      <header className="h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 md:px-6 flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-sm">S</span>
           </div>
-          <div>
+          <div className="hidden sm:block">
             <h1 className="text-lg font-semibold">Soravur</h1>
             <p className="text-xs text-muted-foreground -mt-0.5">
               Imtihon yordamchisi
             </p>
+          </div>
+          <div className="sm:hidden">
+            <h1 className="text-base font-semibold">Soravur</h1>
           </div>
         </div>
         <UserMenu />

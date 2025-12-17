@@ -59,10 +59,14 @@ export function ModelSelector({
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 h-9 px-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 md:gap-2 h-9 px-2 md:px-3 w-full md:w-auto justify-start"
+        >
           {currentModel.icon}
-          <span className="font-medium">{currentModel.name}</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+          <span className="font-medium text-sm">{currentModel.name}</span>
+          <ChevronDown className="h-3 w-3 opacity-50 ml-auto" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
