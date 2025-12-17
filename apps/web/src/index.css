@@ -163,3 +163,33 @@ body {
     scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   }
 }
+
+/* KaTeX overrides for better dark mode support */
+@layer utilities {
+  .prose .katex-display {
+    @apply overflow-x-auto;
+  }
+
+  .dark .prose .katex,
+  .dark .prose .katex-display {
+    @apply text-foreground;
+  }
+
+  /* Markdown code block styling */
+  .prose pre {
+    @apply bg-muted/50 border border-border;
+  }
+
+  .prose code {
+    @apply before:content-none after:content-none;
+  }
+
+  /* Better list styling */
+  .prose ul li::marker {
+    @apply text-muted-foreground;
+  }
+
+  .prose ol li::marker {
+    @apply text-muted-foreground font-semibold;
+  }
+}

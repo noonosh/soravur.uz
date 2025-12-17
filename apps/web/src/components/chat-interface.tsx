@@ -6,6 +6,11 @@ import { api } from "@soravur/backend/convex/_generated/api";
 import { ChatThreadList } from "./chat-thread-list";
 import { ChatMessage } from "./chat-message";
 import { ChatComposer } from "./chat-composer";
+import {
+  ModelSelector,
+  getModelByType,
+  type ModelType,
+} from "./model-selector";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { MessageCircle, Sparkles } from "lucide-react";
@@ -19,6 +24,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   const [selectedThreadId, setSelectedThreadId] =
     useState<Id<"threads"> | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ModelType>("maths");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const threads = useQuery(api.threads.listThreads, { userId });
@@ -82,10 +88,11 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         content,
       });
 
-      // Generate assistant reply
+      // Generate assistant reply with selected model
       await generateReply({
         threadId,
         userMessageId,
+        model: getModelByType(selectedModel),
       });
     } catch (error) {
       toast.error("Javob olishda xatolik yuz berdi");
@@ -96,13 +103,19 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* Thread list sidebar */}
-      <div className="w-80 border-r bg-muted/10 flex flex-col">
+      <div className="w-80 border-r bg-muted/10 flex flex-col flex-shrink-0">
         <div className="p-4 border-b">
-          <h2 className="font-semibold text-lg">Suhbatlar</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-lg">Suhbatlar</h2>
+          </div>
+          <ModelSelector
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+          />
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
           <ChatThreadList
             userId={userId}
             selectedThreadId={selectedThreadId || undefined}
@@ -113,9 +126,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       </div>
 
       {/* Chat area */}
-      <div className="flex-1 flex flex-col bg-background">
+      <div className="flex-1 flex flex-col bg-background min-w-0">
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {!selectedThreadId ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <div className="rounded-full bg-primary/10 p-6 mb-4">

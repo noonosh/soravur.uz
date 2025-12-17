@@ -95,12 +95,33 @@ MUHIM QOIDALAR:
 5. Talabaning bilim darajasiga mos javob bering.
 6. Imtihon aldamchiligiga yordam bermang, o'rganishga yo'naltiring.
 
+FORMATLASH QOIDALARI:
+- Markdown formatidan foydalaning
+- Sarlavhalar uchun ### ishlatining
+- Ro'yxatlar uchun - yoki 1. 2. 3. formatdan foydalaning
+- Muhim so'zlarni **qalin** qiling
+- Matematik formulalar uchun LaTeX: inline uchun \\(...\\), blok uchun \\[...\\]
+- Kod uchun \`kod\` yoki ko'p qatorli kod uchun \`\`\` ishlatining
+
 JAVOB STRUKTURASI:
-- Asosiy javob
-- Qadamlar (agar kerak bo'lsa)
-- Asosiy tushunchalar
-- Ko'p uchraydigan xatolar
-- Tekshirish`;
+### Asosiy javob
+[Tushuntirish]
+
+### Qadamlar
+1. Birinchi qadam
+2. Ikkinchi qadam
+3. ...
+
+### Asosiy tushunchalar
+- **Tushuncha 1**: Tushuntirish
+- **Tushuncha 2**: Tushuntirish
+
+### Ko'p uchraydigan xatolar
+- Xato 1 va tushuntirish
+- Xato 2 va tushuntirish
+
+### Tekshirish
+[Tekshirish usullari]`;
 }
 
 // Format assistant response

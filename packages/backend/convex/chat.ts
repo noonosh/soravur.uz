@@ -15,6 +15,7 @@ export const generateAssistantReply = action({
   args: {
     threadId: v.id("threads"),
     userMessageId: v.id("messages"),
+    model: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<any> => {
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -41,6 +42,9 @@ export const generateAssistantReply = action({
       throw new Error("User message not found");
     }
 
+    // Determine which model to use
+    const selectedModel = args.model || DEFAULT_MODEL;
+
     // Check if the user message is in Uzbek
     if (!isLikelyUzbek(userMessage.content)) {
       // Ask user to write in Uzbek
@@ -50,7 +54,7 @@ export const generateAssistantReply = action({
       return await ctx.runMutation(api.messages.appendAssistantMessage, {
         threadId: args.threadId,
         content: responseContent,
-        model: DEFAULT_MODEL,
+        model: selectedModel,
       });
     }
 
@@ -72,7 +76,7 @@ export const generateAssistantReply = action({
 
     try {
       const completion = await client.createChatCompletion({
-        model: DEFAULT_MODEL,
+        model: selectedModel,
         messages: conversationMessages,
         max_tokens: 1000,
         temperature: 0.7,
@@ -93,7 +97,7 @@ export const generateAssistantReply = action({
         ];
 
         const retryCompletion = await client.createChatCompletion({
-          model: DEFAULT_MODEL,
+          model: selectedModel,
           messages: retryMessages,
           max_tokens: 1000,
           temperature: 0.5,
@@ -105,7 +109,7 @@ export const generateAssistantReply = action({
         return await ctx.runMutation(api.messages.appendAssistantMessage, {
           threadId: args.threadId,
           content: retryContent,
-          model: DEFAULT_MODEL,
+          model: selectedModel,
           tokenUsage: retryCompletion.usage
             ? {
                 prompt: retryCompletion.usage.prompt_tokens,
@@ -122,7 +126,7 @@ export const generateAssistantReply = action({
         {
           threadId: args.threadId,
           content: assistantContent,
-          model: DEFAULT_MODEL,
+          model: selectedModel,
           tokenUsage: completion.usage
             ? {
                 prompt: completion.usage.prompt_tokens,
@@ -139,7 +143,7 @@ export const generateAssistantReply = action({
           userId: thread.userId,
           threadId: args.threadId,
           requestId: completion.id,
-          model: DEFAULT_MODEL,
+          model: selectedModel,
           tokensTotal: completion.usage.total_tokens,
         });
       }
@@ -164,7 +168,7 @@ export const generateAssistantReply = action({
         threadId: args.threadId,
         content:
           "Kechirasiz, texnik muammo yuz berdi. Iltimos, keyinroq urinib ko'ring.",
-        model: DEFAULT_MODEL,
+        model: selectedModel,
       });
     }
   },
