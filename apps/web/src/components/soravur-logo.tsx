@@ -57,3 +57,4 @@ export function SoravurFullLogo({
 }: Omit<LogoProps, "variant">) {
   return <SoravurLogo variant="full" size={size} className={className} />;
 }
+
