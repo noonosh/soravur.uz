@@ -30,7 +30,7 @@ export default function SignUpForm({
         {
           onSuccess: () => {
             router.push("/");
-            toast.success("Sign up successful");
+            toast.success("Ro‘yxatdan o‘tish muvaffaqiyatli");
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -40,16 +40,18 @@ export default function SignUpForm({
     },
     validators: {
       onSubmit: z.object({
-        name: z.string().min(2, "Name must be at least 2 characters"),
-        email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        name: z.string().min(2, "Ism kamida 2 ta belgidan iborat bo‘lsin"),
+        email: z.email("Email manzili noto‘g‘ri"),
+        password: z
+          .string()
+          .min(8, "Parol kamida 8 ta belgidan iborat bo‘lsin"),
       }),
     },
   });
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">Ro‘yxatdan o‘tish</h1>
 
       <form
         onSubmit={(e) => {
@@ -134,7 +136,7 @@ export default function SignUpForm({
               className="w-full"
               disabled={!state.canSubmit || state.isSubmitting}
             >
-              {state.isSubmitting ? "Submitting..." : "Sign Up"}
+              {state.isSubmitting ? "Yuborilmoqda..." : "Ro‘yxatdan o‘tish"}
             </Button>
           )}
         </form.Subscribe>
@@ -146,7 +148,7 @@ export default function SignUpForm({
           onClick={onSwitchToSignIn}
           className="text-indigo-600 hover:text-indigo-800"
         >
-          Already have an account? Sign In
+          Hisobingiz bormi? Kirish
         </Button>
       </div>
     </div>

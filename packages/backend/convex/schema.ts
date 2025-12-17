@@ -34,6 +34,14 @@ export default defineSchema({
     ),
   }).index("by_thread_createdAt", ["threadId", "createdAt"]),
 
+  rateLimits: defineTable({
+    userId: v.id("users"),
+    windowKey: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user_window", ["userId", "windowKey"]),
+
   usageEvents: defineTable({
     userId: v.id("users"),
     threadId: v.id("threads"),

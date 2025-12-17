@@ -33,7 +33,7 @@ const MODEL_OPTIONS: ModelOption[] = [
     name: "Adabiyot",
     description: "Adabiyot va yozuv uchun",
     icon: <BookOpen className="h-4 w-4" />,
-    model: "google/gemini-2.0-flash-thinking-exp:free", // Free, great for literature and writing
+    model: "mistralai/devstral-2512:free", // Free, great for literature and writing
   },
   {
     id: "programming",

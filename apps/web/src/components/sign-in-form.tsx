@@ -28,7 +28,7 @@ export default function SignInForm({
         {
           onSuccess: () => {
             router.push("/");
-            toast.success("Sign in successful");
+            toast.success("Kirish muvaffaqiyatli");
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -38,15 +38,17 @@ export default function SignInForm({
     },
     validators: {
       onSubmit: z.object({
-        email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        email: z.email("Email manzili noto‘g‘ri"),
+        password: z
+          .string()
+          .min(8, "Parol kamida 8 ta belgidan iborat bo‘lsin"),
       }),
     },
   });
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">Kirish</h1>
 
       <form
         onSubmit={(e) => {
@@ -109,7 +111,7 @@ export default function SignInForm({
               className="w-full"
               disabled={!state.canSubmit || state.isSubmitting}
             >
-              {state.isSubmitting ? "Submitting..." : "Sign In"}
+              {state.isSubmitting ? "Yuborilmoqda..." : "Kirish"}
             </Button>
           )}
         </form.Subscribe>
@@ -121,7 +123,7 @@ export default function SignInForm({
           onClick={onSwitchToSignUp}
           className="text-indigo-600 hover:text-indigo-800"
         >
-          Need an account? Sign Up
+          Hisobingiz yo‘qmi? Ro‘yxatdan o‘ting
         </Button>
       </div>
     </div>

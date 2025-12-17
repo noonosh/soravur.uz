@@ -1,5 +1,3 @@
-import { v } from "convex/values";
-
 export const OPENROUTER_API_URL =
   "https://openrouter.ai/api/v1/chat/completions";
 
@@ -69,17 +67,26 @@ export class OpenRouterClient {
 
 // Uzbek language detection (basic heuristic)
 export function isLikelyUzbek(text: string): boolean {
-  // Uzbek-specific letters in Latin script
-  const uzbekLetters = /[ʻʼ''oʻgʻ]/i;
-  // Common Uzbek words
-  const uzbekWords =
-    /\b(va|bilan|uchun|agar|lekin|siz|men|bu|u|ular|bizning|sizning|qanday|nima|nega|qachon|qayerda|kim|shunday|har|hamma|yoki|chunki|shuning|keyin|oldin|hozir|bugun|kecha|ertaga)\b/i;
+  const t = text.trim();
+  if (t.length === 0) return false;
 
-  // Check for Cyrillic Uzbek
-  const cyrillicUzbek = /[ўғҳқ]/;
+  // Uzbek Cyrillic-specific letters
+  const cyrillicUzbekLetters = /[ўғҳқ]/i;
+
+  // Uzbek Latin: apostrophe variants + digraphs often used in Uzbek
+  const latinUzbekPatterns = /(o['’ʻ]?\s?z|o['’ʻ]|g['’ʻ]|sh|ch|yo|yu|ya)/i;
+
+  // Common Uzbek function words (Latin + Cyrillic)
+  const uzbekWords =
+    /\b(va|bilan|uchun|agar|lekin|siz|men|bu|u|ular|biz|bizning|sizning|qanday|nima|nega|qachon|qayerda|kim|shunday|har|hamma|yoki|chunki|shuning|keyin|oldin|hozir|bugun|kecha|ertaga|vaqt|masala|yechim|tushuntir|izoh)\b/i;
+  const uzbekWordsCyrillic =
+    /\b(ва|билан|учун|агар|лекин|сиз|мен|бу|у|улар|биз|бизнинг|сизнинг|қандай|нима|нега|қачон|қаерда|ким|шундай|ҳар|ҳамма|ёки|чунки|шунинг|кейин|олдин|ҳозир|бугун|кеча|эртага)\b/i;
 
   return (
-    uzbekLetters.test(text) || uzbekWords.test(text) || cyrillicUzbek.test(text)
+    cyrillicUzbekLetters.test(t) ||
+    latinUzbekPatterns.test(t) ||
+    uzbekWords.test(t) ||
+    uzbekWordsCyrillic.test(t)
   );
 }
 
