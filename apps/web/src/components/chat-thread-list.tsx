@@ -136,13 +136,21 @@ export function ChatThreadList({
                       })}
                     </p>
                   </div>
-                  <button
+                  <div
                     onClick={(e) => handleDeleteClick(e, thread._id)}
                     className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 hover:bg-destructive/20 hover:scale-110 rounded cursor-pointer active:scale-95"
                     aria-label="Archive chat"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleDeleteClick(e as any, thread._id);
+                      }
+                    }}
                   >
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </button>
+                  </div>
                 </div>
               </button>
             ))
