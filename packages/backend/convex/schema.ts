@@ -13,6 +13,7 @@ export default defineSchema({
     title: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
+    isArchived: v.optional(v.boolean()),
   }).index("by_user_updatedAt", ["userId", "updatedAt"]),
 
   messages: defineTable({

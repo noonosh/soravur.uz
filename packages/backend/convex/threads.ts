@@ -35,11 +35,13 @@ export const listThreads = query({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const threads = await ctx.db
       .query("threads")
       .withIndex("by_user_updatedAt", (q) => q.eq("userId", args.userId))
       .order("desc")
       .collect();
+
+    return threads.filter((thread) => !thread.isArchived);
   },
 });
 
@@ -49,5 +51,17 @@ export const getThread = query({
   },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.threadId);
+  },
+});
+
+export const archiveThread = mutation({
+  args: {
+    threadId: v.id("threads"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.threadId, {
+      isArchived: true,
+      updatedAt: Date.now(),
+    });
   },
 });

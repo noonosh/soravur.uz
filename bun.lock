@@ -25,6 +25,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@convex-dev/better-auth": "catalog:",
+        "@radix-ui/react-alert-dialog": "^1.1.15",
         "@soravur/backend": "workspace:*",
         "@tanstack/react-form": "^1.27.3",
         "babel-plugin-react-compiler": "^1.0.0",
