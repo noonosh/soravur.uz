@@ -1,0 +1,25 @@
+{
+  "models": [
+    {
+      "id": "maths",
+      "displayName": "Matematika",
+      "description": "Matematik masalalar uchun",
+      "icon": "calculator",
+      "openRouterModel": "deepseek/deepseek-v3.2"
+    },
+    {
+      "id": "literature",
+      "displayName": "Adabiyot",
+      "description": "Adabiyot va yozuv uchun",
+      "icon": "book-open",
+      "openRouterModel": "deepseek/deepseek-v3.2"
+    },
+    {
+      "id": "programming",
+      "displayName": "Dasturlash",
+      "description": "Kod yozish va tushuntirish uchun",
+      "icon": "code-2",
+      "openRouterModel": "deepseek/deepseek-v3.2"
+    }
+  ]
+}

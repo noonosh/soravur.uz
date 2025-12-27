@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Calculator, BookOpen, Code2, ChevronDown } from "lucide-react";
+import modelsConfig from "../../../../models.json";
 
 export type ModelType = "maths" | "literature" | "programming";
 
@@ -20,29 +21,27 @@ interface ModelOption {
   model: string; // Actual model name for the API
 }
 
-const MODEL_OPTIONS: ModelOption[] = [
-  {
-    id: "maths",
-    name: "Matematika",
-    description: "Matematik masalalar uchun",
-    icon: <Calculator className="h-4 w-4" />,
-    model: "openai/gpt-oss-20b:free", // Free, excellent for math reasoning
-  },
-  {
-    id: "literature",
-    name: "Adabiyot",
-    description: "Adabiyot va yozuv uchun",
-    icon: <BookOpen className="h-4 w-4" />,
-    model: "mistralai/devstral-2512:free", // Free, great for literature and writing
-  },
-  {
-    id: "programming",
-    name: "Dasturlash",
-    description: "Kod yozish va tushuntirish uchun",
-    icon: <Code2 className="h-4 w-4" />,
-    model: "anthropic/claude-3.7-sonnet", // Free, specialized for coding
-  },
-];
+const ICON_MAP: Record<string, React.ReactNode> = {
+  calculator: <Calculator className="h-4 w-4" />,
+  "book-open": <BookOpen className="h-4 w-4" />,
+  "code-2": <Code2 className="h-4 w-4" />,
+};
+
+const MODEL_OPTIONS: ModelOption[] = modelsConfig.models.map(
+  (model: {
+    id: string;
+    displayName: string;
+    description: string;
+    icon: string;
+    openRouterModel: string;
+  }) => ({
+    id: model.id as ModelType,
+    name: model.displayName,
+    description: model.description,
+    icon: ICON_MAP[model.icon] || <Calculator className="h-4 w-4" />,
+    model: model.openRouterModel,
+  })
+);
 
 interface ModelSelectorProps {
   selectedModel: ModelType;
