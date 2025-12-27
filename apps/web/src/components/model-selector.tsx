@@ -40,7 +40,7 @@ const MODEL_OPTIONS: ModelOption[] = [
     name: "Dasturlash",
     description: "Kod yozish va tushuntirish uchun",
     icon: <Code2 className="h-4 w-4" />,
-    model: "kwaipilot/kat-coder-pro:free", // Free, specialized for coding
+    model: "anthropic/claude-3.7-sonnet", // Free, specialized for coding
   },
 ];
 
