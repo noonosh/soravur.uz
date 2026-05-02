@@ -54,6 +54,33 @@ describe("email templates", () => {
 		expect(message.subject).toMatch(/o'chirildi/i);
 	});
 
+	// Wording lock: the project moved from "hisob" (literally "account",
+	// but reads as "bill/calculation" to many Uzbek speakers) to
+	// "profil". These guards keep email copy from drifting back.
+	it("email templates use 'profil' wording, not 'hisob'", () => {
+		const verify = verificationEmail({
+			to: "alice@example.com",
+			url: "https://example.com/v",
+		});
+		const reset = passwordResetEmail({
+			to: "alice@example.com",
+			url: "https://example.com/r",
+		});
+		const deleted = accountDeletedEmail({ to: "alice@example.com" });
+
+		for (const m of [verify, reset, deleted]) {
+			expect(m.subject.toLowerCase()).not.toMatch(/hisob/);
+			expect(m.html.toLowerCase()).not.toMatch(/hisob/);
+			expect(m.text.toLowerCase()).not.toMatch(/hisob/);
+		}
+
+		expect(verify.subject.toLowerCase()).toContain("profil");
+		expect(verify.html.toLowerCase()).toContain("profil");
+		expect(reset.html.toLowerCase()).toContain("profil");
+		expect(deleted.subject.toLowerCase()).toContain("profil");
+		expect(deleted.html.toLowerCase()).toContain("profil");
+	});
+
 	it("CapturingEmailSender records dispatched messages without sending", async () => {
 		const sender = new CapturingEmailSender();
 		await sender.send({

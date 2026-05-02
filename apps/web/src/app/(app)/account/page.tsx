@@ -51,10 +51,10 @@ export default function AccountPage() {
 		<div className="space-y-10">
 			<header className="space-y-1.5">
 				<p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-					Hisob
+					Profil
 				</p>
 				<h1 className="text-2xl md:text-3xl font-medium tracking-tight">
-					Hisob ma&apos;lumotlari.
+					Mening profilim.
 				</h1>
 				<p className="text-sm text-muted-foreground">
 					Ism va email manzilingizni shu yerdan boshqaring.

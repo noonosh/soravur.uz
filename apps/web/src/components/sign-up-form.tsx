@@ -64,7 +64,7 @@ export default function SignUpForm() {
 		<div className="w-full">
 			<header className="mb-8 space-y-1.5">
 				<p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-					Yangi hisob
+					Yangi profil
 				</p>
 				<h1 className="text-2xl md:text-3xl font-medium tracking-tight">
 					Boshlaymizmi?
@@ -178,7 +178,7 @@ export default function SignUpForm() {
 			</form>
 
 			<p className="mt-8 text-sm text-muted-foreground">
-				Hisobingiz bormi?{" "}
+				Profilingiz bormi?{" "}
 				<Link
 					href="/sign-in"
 					className="font-medium text-foreground underline-offset-4 hover:underline"

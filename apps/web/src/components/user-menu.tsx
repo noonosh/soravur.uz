@@ -79,7 +79,7 @@ export default function UserMenu() {
 							className="h-4 w-4 mr-2.5 text-muted-foreground"
 							strokeWidth={1.5}
 						/>
-						Hisob
+						Mening profilim
 					</Link>
 				</DropdownMenuItem>
 

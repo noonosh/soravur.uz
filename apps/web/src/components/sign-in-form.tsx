@@ -79,7 +79,7 @@ export default function SignInForm() {
 		<div className="w-full">
 			<header className="mb-8 space-y-1.5">
 				<p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-					Hisobga kirish
+					Profilga kirish
 				</p>
 				<h1 className="text-2xl md:text-3xl font-medium tracking-tight">
 					Xush kelibsiz.
@@ -174,7 +174,7 @@ export default function SignInForm() {
 			</form>
 
 			<p className="mt-8 text-sm text-muted-foreground">
-				Hisobingiz yo‘qmi?{" "}
+				Profilingiz yo‘qmi?{" "}
 				<Link
 					href="/sign-up"
 					className="font-medium text-foreground underline-offset-4 hover:underline"
