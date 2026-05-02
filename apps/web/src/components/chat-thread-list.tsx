@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MessageSquarePlus, MessageCircle, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { uz } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -85,11 +85,13 @@ export function ChatThreadList({
 
   if (!threads) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <Skeleton className="h-16 w-full rounded-lg" />
-        <Skeleton className="h-16 w-full rounded-lg" />
-        <Skeleton className="h-16 w-full rounded-lg" />
+      <div className="space-y-2">
+        <Skeleton className="h-9 w-full rounded-md" />
+        <div className="space-y-1.5 pt-3">
+          <Skeleton className="h-12 w-full rounded-md" />
+          <Skeleton className="h-12 w-full rounded-md" />
+          <Skeleton className="h-12 w-full rounded-md" />
+        </div>
       </div>
     );
   }
@@ -99,85 +101,101 @@ export function ChatThreadList({
       <div className="space-y-3">
         <Button
           onClick={onNewThread}
-          className="w-full justify-start gap-2 h-10 touch-manipulation cursor-pointer"
-          variant="ghost"
+          variant="outline"
           size="sm"
+          className="w-full justify-start gap-2 h-9 border-dashed border-border/70 hover:border-border bg-transparent text-muted-foreground hover:text-foreground"
         >
-          <MessageSquarePlus className="h-4 w-4" />
-          <span>Yangi suhbat</span>
+          <Plus className="h-4 w-4" strokeWidth={1.5} />
+          <span className="text-sm font-medium">Yangi suhbat</span>
         </Button>
 
-        <div className="space-y-1">
-          {threads.length === 0 ? (
-            <div className="text-center py-8 text-sm text-muted-foreground">
-              Hali suhbatlar yo'q
-            </div>
-          ) : (
-            threads.map((thread) => (
-              <button
-                key={thread._id}
-                className={cn(
-                  "group w-full text-left rounded-lg p-3 transition-all hover:bg-muted/50 touch-manipulation active:scale-[0.98] relative cursor-pointer",
-                  selectedThreadId === thread._id &&
-                    "bg-muted shadow-sm border border-border"
-                )}
-                onClick={() => onThreadSelect(thread._id)}
-              >
-                <div className="flex items-start gap-2.5">
-                  <MessageCircle className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate leading-tight">
-                      {thread.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(thread.updatedAt), {
-                        addSuffix: true,
-                        locale: uz,
-                      })}
-                    </p>
-                  </div>
-                  <div
-                    onClick={(e) => handleDeleteClick(e, thread._id)}
-                    className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 hover:bg-destructive/20 hover:scale-110 rounded cursor-pointer active:scale-95"
-                    aria-label="Archive chat"
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleDeleteClick(e as any, thread._id);
-                      }
-                    }}
+        {threads.length === 0 ? (
+          <div className="text-center py-10 px-2">
+            <p className="text-sm text-foreground font-medium">
+              Hali suhbatlar yo&apos;q
+            </p>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Yangi suhbat yarating va savolingizni yozing.
+            </p>
+          </div>
+        ) : (
+          <ul className="-mx-2">
+            {threads.map((thread) => {
+              const isActive = selectedThreadId === thread._id;
+              return (
+                <li key={thread._id} className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => onThreadSelect(thread._id)}
+                    className={cn(
+                      "w-full text-left rounded-md px-3 py-2.5 transition-colors",
+                      "hover:bg-muted/60",
+                      isActive && "bg-muted/80"
+                    )}
                   >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </div>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
+                    {/* Active accent bar */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-brand transition-opacity",
+                        isActive ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0 pr-6">
+                        <p
+                          className={cn(
+                            "text-sm leading-snug truncate",
+                            isActive ? "font-medium" : "font-normal"
+                          )}
+                        >
+                          {thread.title}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-1 tracking-tight">
+                          {formatDistanceToNow(new Date(thread.updatedAt), {
+                            addSuffix: true,
+                            locale: uz,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Suhbatni arxivlash"
+                    onClick={(e) => handleDeleteClick(e, thread._id)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center size-7 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-opacity"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <AlertDialog
         open={!!threadToDelete}
         onOpenChange={(open) => !open && setThreadToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="border-border/70">
           <AlertDialogHeader>
-            <AlertDialogTitle>Suhbatni o'chirish</AlertDialogTitle>
+            <AlertDialogTitle className="tracking-tight">
+              Suhbatni o&apos;chirish
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Bu suhbatni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.
+              Bu suhbatni o&apos;chirishni xohlaysizmi? Bu amalni qaytarib
+              bo&apos;lmaydi.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer hover:scale-105 active:scale-95 transition-transform">
-              Bekor qilish
-            </AlertDialogCancel>
+            <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className="bg-destructive text-white hover:bg-destructive/90 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
-              O'chirish
+              O&apos;chirish
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
