@@ -30,18 +30,15 @@ function AuthenticatedApp() {
   }, [currentUser, ensureUser]);
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
-      <header className="h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 md:px-6 flex-shrink-0 relative">
-        <div className="flex items-center gap-2">
-          <SoravurIcon size="md" />
-          <div className="hidden sm:block">
-            <h1 className="text-lg font-semibold">Soravur</h1>
-            <p className="text-xs text-muted-foreground -mt-0.5">
+    <div className="min-h-[100dvh] h-[100dvh] flex flex-col bg-background overflow-hidden">
+      <header className="h-14 border-b border-border/70 bg-background/85 backdrop-blur-md flex items-center justify-between px-4 md:px-6 flex-shrink-0 relative">
+        <div className="flex items-center gap-2.5">
+          <SoravurIcon size="sm" />
+          <div className="leading-tight">
+            <p className="text-sm font-medium tracking-tight">Soravur</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground -mt-0.5">
               Imtihon yordamchisi
             </p>
-          </div>
-          <div className="sm:hidden">
-            <h1 className="text-base font-semibold">Soravur</h1>
           </div>
         </div>
         <div className="absolute left-1/2 -translate-x-1/2 hidden md:block">
@@ -69,6 +66,60 @@ function AuthenticatedApp() {
   );
 }
 
+function AuthShell({
+  showSignIn,
+  onToggle,
+}: {
+  showSignIn: boolean;
+  onToggle: (next: boolean) => void;
+}) {
+  return (
+    <div className="min-h-[100dvh] grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-background">
+      {/* Left: brand statement. Hidden on mobile to keep the form
+          first-paint fast. */}
+      <aside className="hidden lg:flex flex-col justify-between border-r border-border/70 px-12 py-10">
+        <div className="flex items-center gap-2.5">
+          <SoravurIcon size="sm" />
+          <span className="text-sm font-medium tracking-tight">Soravur</span>
+        </div>
+
+        <div className="max-w-[34ch] space-y-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            O‘zbek tilida AI yordamchi
+          </p>
+          <h2 className="text-3xl xl:text-4xl font-medium leading-[1.15] tracking-tight">
+            Imtihonga tayyorgarlikni{" "}
+            <span className="text-brand">qadamma-qadam</span> tushunib boring.
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Matematika, adabiyot, dasturlash — savolingizni o‘zbekcha yozing,
+            yechimni tushuntirib beraman.
+          </p>
+        </div>
+
+        <p className="text-xs text-muted-foreground/80">Soravur · 2026</p>
+      </aside>
+
+      {/* Right: form column. */}
+      <section className="flex items-center justify-center px-6 py-10 sm:px-10 md:px-16">
+        <div className="w-full max-w-sm">
+          {/* Mobile-only brand mark */}
+          <div className="lg:hidden mb-10 flex items-center gap-2.5">
+            <SoravurIcon size="sm" />
+            <span className="text-sm font-medium tracking-tight">Soravur</span>
+          </div>
+
+          {showSignIn ? (
+            <SignInForm onSwitchToSignUp={() => onToggle(false)} />
+          ) : (
+            <SignUpForm onSwitchToSignIn={() => onToggle(true)} />
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default function Home() {
   const [showSignIn, setShowSignIn] = useState(false);
 
@@ -78,29 +129,10 @@ export default function Home() {
         <AuthenticatedApp />
       </Authenticated>
       <Unauthenticated>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-muted/40">
-          <div className="max-w-md w-full space-y-8 p-8">
-            <div className="text-center space-y-3">
-              <div className="mx-auto flex items-center justify-center">
-                <SoravurIcon size="xl" />
-              </div>
-              <h1 className="text-4xl font-bold tracking-tight">Soravur</h1>
-              <p className="text-muted-foreground text-lg">
-                O'zbek tilida imtihonlarga tayyorgarlik uchun AI yordamchi
-              </p>
-            </div>
-            <div className="bg-card/50 backdrop-blur border rounded-xl p-6 shadow-lg">
-              {showSignIn ? (
-                <SignInForm onSwitchToSignUp={() => setShowSignIn(false)} />
-              ) : (
-                <SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
-              )}
-            </div>
-          </div>
-        </div>
+        <AuthShell showSignIn={showSignIn} onToggle={setShowSignIn} />
       </Unauthenticated>
       <AuthLoading>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-[100dvh] flex items-center justify-center">
           <Loader />
         </div>
       </AuthLoading>
