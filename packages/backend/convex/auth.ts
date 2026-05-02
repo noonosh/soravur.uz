@@ -25,6 +25,20 @@ function createAuth(
 			enabled: true,
 			requireEmailVerification: false,
 		},
+		// Throttle abusive auth traffic at the framework level. Storage
+		// uses better-auth's default (in-memory per Convex container,
+		// good enough as a first line of defence). Per-route overrides
+		// catch the high-cost endpoints: signup and password sign-in.
+		rateLimit: {
+			enabled: true,
+			window: 60,
+			max: 30,
+			customRules: {
+				"/sign-up/email": { window: 60 * 60, max: 5 },
+				"/sign-in/email": { window: 60, max: 10 },
+				"/forget-password": { window: 60 * 60, max: 5 },
+			},
+		},
 		plugins: [convex()],
 	});
 }
