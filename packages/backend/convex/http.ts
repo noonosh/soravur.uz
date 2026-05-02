@@ -3,6 +3,7 @@ import { authComponent, createAuth } from "./auth";
 import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
+import { isSubject } from "./prompts";
 
 const http = httpRouter();
 
@@ -162,7 +163,11 @@ http.route({
     }
 
     // Parse request body
-    const body = (await request.json()) as { content: string; model?: string };
+    const body = (await request.json()) as {
+      content: string;
+      model?: string;
+      subject?: string;
+    };
 
     if (!body.content || body.content.trim().length === 0) {
       return withCors(
@@ -177,6 +182,18 @@ http.route({
         new Response("Model is required", { status: 400 })
       );
     }
+
+    // `subject` was added in PR 1 (subject-aware system prompts).
+    // Convex auto-deploys ahead of Vercel, so for one deploy cycle the
+    // old frontend bundle (cached in users' browsers) will keep posting
+    // without `subject`. Fall back to "maths" rather than 400-ing
+    // those requests. Tighten to required in a follow-up once stale
+    // bundles have rotated out (≥ ~1 week post-deploy).
+    const resolvedSubject: "maths" | "literature" | "programming" = isSubject(
+      body.subject
+    )
+      ? body.subject
+      : "maths";
 
     // Append user message
     const userMessageId = await ctx.runMutation(
@@ -196,6 +213,7 @@ http.route({
           threadId,
           userMessageId,
           model: body.model,
+          subject: resolvedSubject,
         }
       );
     } catch (error) {
