@@ -1,6 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+function startOfDayMs(now: number): number {
+  const d = new Date(now);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
 export const logUsage = mutation({
   args: {
     userId: v.id("users"),
@@ -20,6 +26,38 @@ export const logUsage = mutation({
       tokensTotal: args.tokensTotal,
       costEstimateUsd: args.costEstimateUsd,
     });
+  },
+});
+
+// Today's token totals (UTC day) for a user and globally. Used by the
+// chat action to enforce daily caps before calling OpenRouter.
+export const getDailyTokens = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const since = startOfDayMs(Date.now());
+
+    const userEvents = await ctx.db
+      .query("usageEvents")
+      .withIndex("by_user_createdAt", (q) =>
+        q.eq("userId", args.userId).gte("createdAt", since)
+      )
+      .collect();
+
+    const globalEvents = await ctx.db
+      .query("usageEvents")
+      .withIndex("by_createdAt", (q) => q.gte("createdAt", since))
+      .collect();
+
+    const sumTokens = (rows: Array<{ tokensTotal?: number }>) =>
+      rows.reduce((s, r) => s + (r.tokensTotal || 0), 0);
+
+    return {
+      userTokens: sumTokens(userEvents),
+      globalTokens: sumTokens(globalEvents),
+      sinceMs: since,
+    };
   },
 });
 

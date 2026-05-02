@@ -201,7 +201,11 @@ http.route({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Xatolik yuz berdi";
-      const status = message.includes("Juda ko‘p so‘rov") ? 429 : 500;
+      const isRateLimited =
+        message.includes("Juda ko‘p so‘rov") ||
+        message.includes("kunlik so'rovlar chegarasiga") ||
+        message.includes("umumiy yuklanish chegarasiga");
+      const status = isRateLimited ? 429 : 500;
       return withCors(request, new Response(message, { status }));
     }
 

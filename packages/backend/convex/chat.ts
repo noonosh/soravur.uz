@@ -12,6 +12,18 @@ import {
 const MAX_CONTEXT_MESSAGES = 20;
 const REQUESTS_PER_MINUTE_LIMIT = 12;
 
+// Daily token caps (UTC day). Override via Convex env vars.
+// Defaults are conservative — adjust upward in the dashboard for prod.
+const DEFAULT_DAILY_TOKENS_PER_USER = 50_000;
+const DEFAULT_DAILY_TOKENS_GLOBAL = 2_000_000;
+
+function envInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
 // Phrases that strongly imply asking for an answer key / cheat sheet.
 // Matched as case-insensitive whole-phrase substrings; the words "copy",
 // "variant", "kalit", and "answers" alone are too generic (they hit
@@ -74,6 +86,29 @@ export const generateAssistantReply = action({
       windowMs: 60_000,
       limit: REQUESTS_PER_MINUTE_LIMIT,
     });
+
+    // Daily token caps — per-user and global circuit breaker.
+    const userDailyCap = envInt(
+      "DAILY_TOKENS_PER_USER",
+      DEFAULT_DAILY_TOKENS_PER_USER
+    );
+    const globalDailyCap = envInt(
+      "DAILY_TOKENS_GLOBAL",
+      DEFAULT_DAILY_TOKENS_GLOBAL
+    );
+    const daily = await ctx.runQuery(api.usageEvents.getDailyTokens, {
+      userId: thread.userId,
+    });
+    if (daily.userTokens >= userDailyCap) {
+      throw new Error(
+        "Bugungi kunlik so'rovlar chegarasiga yetdingiz. Iltimos, ertaga qayta urinib ko'ring."
+      );
+    }
+    if (daily.globalTokens >= globalDailyCap) {
+      throw new Error(
+        "Tizim bugungi umumiy yuklanish chegarasiga yetdi. Iltimos, biroz keyinroq urinib ko'ring."
+      );
+    }
 
     // Get recent messages for context
     const messages = (await ctx.runQuery(api.messages.listMessages, {

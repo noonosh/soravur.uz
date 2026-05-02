@@ -53,5 +53,6 @@ export default defineSchema({
     costEstimateUsd: v.optional(v.number()),
   })
     .index("by_user_createdAt", ["userId", "createdAt"])
+    .index("by_createdAt", ["createdAt"])
     .index("by_request", ["requestId"]),
 });
