@@ -79,10 +79,39 @@ export class OpenRouterClient {
   }
 }
 
-// Uzbek language detection (basic heuristic)
+// Uzbek language detection (basic heuristic).
+//
+// The goal is to reject obviously English/Russian/etc. messages, NOT to
+// gate every short or formula-heavy input. We bypass the heuristic when
+// the message is too short or too non-linguistic to make a reliable
+// judgement (math, code, mostly digits/symbols), and we additionally
+// reject when we see strong signals of another language (Cyrillic
+// letters that aren't in the Uzbek alphabet, dense English function
+// words, etc.).
 export function isLikelyUzbek(text: string): boolean {
   const t = text.trim();
   if (t.length === 0) return false;
+
+  // Bypass: very short messages — language detection on <12 chars is
+  // unreliable, and short clarifications ("ha", "yo'q", "ok", "1+1=?")
+  // shouldn't be blocked.
+  if (t.length < 12) return true;
+
+  // Bypass: math/code-heavy messages where letters are a minority.
+  // We only count alphabetic characters as "linguistic"; if fewer than
+  // 40% of the message is letters, treat it as non-linguistic input.
+  const letterCount = (t.match(/\p{L}/gu) || []).length;
+  if (letterCount / t.length < 0.4) return true;
+
+  // Bypass: contains a fenced code block or LaTeX block — clearly not
+  // a normal-prose message.
+  if (/```|\$\$/.test(t)) return true;
+
+  // Strong reject: non-Uzbek Cyrillic letters (Russian-only letters)
+  // dominate. Uzbek Cyrillic uses ў, ғ, ҳ, қ; Russian-specific letters
+  // like ы, э, ъ, ь are not part of standard Uzbek Cyrillic.
+  const russianOnlyLetters = (t.match(/[ыэъь]/gi) || []).length;
+  if (russianOnlyLetters >= 2) return false;
 
   // Uzbek Cyrillic-specific letters
   const cyrillicUzbekLetters = /[ўғҳқ]/i;
