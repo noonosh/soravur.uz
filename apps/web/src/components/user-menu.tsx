@@ -20,9 +20,16 @@ function initialOf(name?: string | null, email?: string | null): string {
 
 export default function UserMenu() {
 	const router = useRouter();
-	const user = useQuery(api.auth.getCurrentUser);
+	const authUser = useQuery(api.auth.getCurrentUser);
+	// Profile is the source of truth for displayName — better-auth's
+	// `name` is set once at sign-up and never updated when the user
+	// edits their profile in /account. Reading from the users table
+	// here keeps the top-right menu in sync with what the user typed.
+	const profile = useQuery(api.users.getCurrentUserProfile);
 
-	const initial = initialOf(user?.name, user?.email);
+	const displayName = profile?.displayName || authUser?.name || null;
+	const email = authUser?.email ?? null;
+	const initial = initialOf(displayName, email);
 
 	return (
 		<DropdownMenu>
@@ -38,7 +45,7 @@ export default function UserMenu() {
 						{initial}
 					</span>
 					<span className="hidden sm:inline text-sm font-medium max-w-[140px] truncate">
-						{user?.name || "Foydalanuvchi"}
+						{displayName || "Foydalanuvchi"}
 					</span>
 				</Button>
 			</DropdownMenuTrigger>
@@ -56,10 +63,10 @@ export default function UserMenu() {
 					</span>
 					<div className="flex-1 min-w-0">
 						<p className="text-sm font-medium truncate leading-tight">
-							{user?.name || "Foydalanuvchi"}
+							{displayName || "Foydalanuvchi"}
 						</p>
 						<p className="text-xs text-muted-foreground truncate mt-0.5">
-							{user?.email || "—"}
+							{email || "—"}
 						</p>
 					</div>
 				</div>
