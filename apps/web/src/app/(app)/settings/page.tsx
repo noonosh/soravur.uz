@@ -125,7 +125,7 @@ export default function SettingsPage() {
 				<div>
 					<p className="text-sm font-medium">Sessiya</p>
 					<p className="text-xs text-muted-foreground mt-1">
-						Profildan chiqing — keyingi safar qayta kirasiz.
+						Tizimdan chiqing — keyingi safar qayta kirasiz.
 					</p>
 				</div>
 				<Button

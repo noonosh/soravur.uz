@@ -79,7 +79,7 @@ export default function SignInForm() {
 		<div className="w-full">
 			<header className="mb-8 space-y-1.5">
 				<p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-					Profilga kirish
+					Tizimga kirish
 				</p>
 				<h1 className="text-2xl md:text-3xl font-medium tracking-tight">
 					Xush kelibsiz.
