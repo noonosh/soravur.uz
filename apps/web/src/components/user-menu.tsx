@@ -8,6 +8,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@soravur/backend/convex/_generated/api";
 import { User, Settings, LogOut } from "lucide-react";
@@ -65,26 +66,24 @@ export default function UserMenu() {
 
 				<DropdownMenuSeparator className="my-1" />
 
-				<DropdownMenuItem
-					className="px-2.5 py-2 text-sm cursor-pointer rounded-sm"
-					onSelect={(e) => e.preventDefault()}
-				>
-					<User
-						className="h-4 w-4 mr-2.5 text-muted-foreground"
-						strokeWidth={1.5}
-					/>
-					Profil
+				<DropdownMenuItem asChild className="px-2.5 py-2 text-sm cursor-pointer rounded-sm">
+					<Link href="/account" className="flex items-center w-full">
+						<User
+							className="h-4 w-4 mr-2.5 text-muted-foreground"
+							strokeWidth={1.5}
+						/>
+						Hisob
+					</Link>
 				</DropdownMenuItem>
 
-				<DropdownMenuItem
-					className="px-2.5 py-2 text-sm cursor-pointer rounded-sm"
-					onSelect={(e) => e.preventDefault()}
-				>
-					<Settings
-						className="h-4 w-4 mr-2.5 text-muted-foreground"
-						strokeWidth={1.5}
-					/>
-					Sozlamalar
+				<DropdownMenuItem asChild className="px-2.5 py-2 text-sm cursor-pointer rounded-sm">
+					<Link href="/settings" className="flex items-center w-full">
+						<Settings
+							className="h-4 w-4 mr-2.5 text-muted-foreground"
+							strokeWidth={1.5}
+						/>
+						Sozlamalar
+					</Link>
 				</DropdownMenuItem>
 
 				<DropdownMenuSeparator className="my-1" />

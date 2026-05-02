@@ -1,7 +1,5 @@
 "use client";
 
-import SignInForm from "@/components/sign-in-form";
-import SignUpForm from "@/components/sign-up-form";
 import UserMenu from "@/components/user-menu";
 import { ChatInterface } from "@/components/chat-interface";
 import { ModelSelector, type ModelType } from "@/components/model-selector";
@@ -15,19 +13,28 @@ import {
   useMutation,
 } from "convex/react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Loader from "@/components/loader";
 
 function AuthenticatedApp() {
   const currentUser = useQuery(api.users.getCurrentUserProfile);
   const ensureUser = useMutation(api.users.ensureCurrentUserProfile);
+  const router = useRouter();
   const [selectedModel, setSelectedModel] = useState<ModelType>("maths");
 
-  // Ensure user profile exists
+  // Materialize the profile, but bail to /sign-in if the row is gone
+  // (soft-deleted account or revoked auth) — getCurrentUserProfile
+  // returns null in both cases.
   useEffect(() => {
     if (currentUser === null) {
-      ensureUser();
+      ensureUser().catch((error) => {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("Account deleted")) {
+          router.push("/sign-in");
+        }
+      });
     }
-  }, [currentUser, ensureUser]);
+  }, [currentUser, ensureUser, router]);
 
   return (
     <div className="min-h-[100dvh] h-[100dvh] flex flex-col bg-background overflow-hidden">
@@ -66,70 +73,26 @@ function AuthenticatedApp() {
   );
 }
 
-function AuthShell({
-  showSignIn,
-  onToggle,
-}: {
-  showSignIn: boolean;
-  onToggle: (next: boolean) => void;
-}) {
+function RedirectToSignIn() {
+  const router = useRouter();
+  useEffect(() => {
+    router.push("/sign-in");
+  }, [router]);
   return (
-    <div className="min-h-[100dvh] grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-background">
-      {/* Left: brand statement. Hidden on mobile to keep the form
-          first-paint fast. */}
-      <aside className="hidden lg:flex flex-col justify-between border-r border-border/70 px-12 py-10">
-        <div className="flex items-center gap-2.5">
-          <SoravurIcon size="sm" />
-          <span className="text-sm font-medium tracking-tight">Soravur</span>
-        </div>
-
-        <div className="max-w-[34ch] space-y-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            O‘zbek tilida AI yordamchi
-          </p>
-          <h2 className="text-3xl xl:text-4xl font-medium leading-[1.15] tracking-tight">
-            Imtihonga tayyorgarlikni{" "}
-            <span className="text-brand">qadamma-qadam</span> tushunib boring.
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Matematika, adabiyot, dasturlash — savolingizni o‘zbekcha yozing,
-            yechimni tushuntirib beraman.
-          </p>
-        </div>
-
-        <p className="text-xs text-muted-foreground/80">Soravur · 2026</p>
-      </aside>
-
-      {/* Right: form column. */}
-      <section className="flex items-center justify-center px-6 py-10 sm:px-10 md:px-16">
-        <div className="w-full max-w-sm">
-          {/* Mobile-only brand mark */}
-          <div className="lg:hidden mb-10 flex items-center gap-2.5">
-            <SoravurIcon size="sm" />
-            <span className="text-sm font-medium tracking-tight">Soravur</span>
-          </div>
-
-          {showSignIn ? (
-            <SignInForm onSwitchToSignUp={() => onToggle(false)} />
-          ) : (
-            <SignUpForm onSwitchToSignIn={() => onToggle(true)} />
-          )}
-        </div>
-      </section>
+    <div className="min-h-[100dvh] flex items-center justify-center">
+      <Loader />
     </div>
   );
 }
 
 export default function Home() {
-  const [showSignIn, setShowSignIn] = useState(false);
-
   return (
     <>
       <Authenticated>
         <AuthenticatedApp />
       </Authenticated>
       <Unauthenticated>
-        <AuthShell showSignIn={showSignIn} onToggle={setShowSignIn} />
+        <RedirectToSignIn />
       </Unauthenticated>
       <AuthLoading>
         <div className="min-h-[100dvh] flex items-center justify-center">

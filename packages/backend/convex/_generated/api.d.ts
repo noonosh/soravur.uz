@@ -10,6 +10,8 @@
 
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
+import type * as email from "../email.js";
+import type * as emailThrottle from "../emailThrottle.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
@@ -29,6 +31,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   chat: typeof chat;
+  email: typeof email;
+  emailThrottle: typeof emailThrottle;
   healthCheck: typeof healthCheck;
   http: typeof http;
   messages: typeof messages;

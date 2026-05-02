@@ -1,3 +1,5 @@
+"use client";
+
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
@@ -6,12 +8,9 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-export default function SignUpForm({
-	onSwitchToSignIn,
-}: {
-	onSwitchToSignIn: () => void;
-}) {
+export default function SignUpForm() {
 	const router = useRouter();
 
 	const form = useForm({
@@ -26,14 +25,26 @@ export default function SignUpForm({
 					email: value.email,
 					password: value.password,
 					name: value.name,
+					// Where better-auth bounces the user after the verify-link
+					// handler runs (autoSignInAfterVerification). Always come
+					// back to the chat shell.
+					callbackURL: "/",
 				},
 				{
 					onSuccess: () => {
-						router.push("/");
-						toast.success("Ro‘yxatdan o‘tish muvaffaqiyatli");
+						// requireEmailVerification: true means the response won't
+						// include a session — push the user to the verify-pending
+						// screen with their email pre-filled.
+						router.push(
+							`/verify-email?email=${encodeURIComponent(value.email)}`,
+						);
 					},
 					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
+						toast.error(
+							error.error.message ||
+								error.error.statusText ||
+								"Ro‘yxatdan o‘tish amalga oshmadi",
+						);
 					},
 				},
 			);
@@ -60,7 +71,7 @@ export default function SignUpForm({
 				</h1>
 				<p className="text-sm text-muted-foreground max-w-[36ch]">
 					Bir necha soniyada ro‘yxatdan o‘ting va o‘zbek tilida savol berishni
-					boshlang.
+					boshlang. Email tasdiqlashi talab qilinadi.
 				</p>
 			</header>
 
@@ -168,13 +179,12 @@ export default function SignUpForm({
 
 			<p className="mt-8 text-sm text-muted-foreground">
 				Hisobingiz bormi?{" "}
-				<button
-					type="button"
-					onClick={onSwitchToSignIn}
+				<Link
+					href="/sign-in"
 					className="font-medium text-foreground underline-offset-4 hover:underline"
 				>
 					Kirish
-				</button>
+				</Link>
 			</p>
 		</div>
 	);

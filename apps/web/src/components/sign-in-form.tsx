@@ -1,3 +1,5 @@
+"use client";
+
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
@@ -6,12 +8,9 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-export default function SignInForm({
-	onSwitchToSignUp,
-}: {
-	onSwitchToSignUp: () => void;
-}) {
+export default function SignInForm() {
 	const router = useRouter();
 
 	const form = useForm({
@@ -31,7 +30,20 @@ export default function SignInForm({
 						toast.success("Kirish muvaffaqiyatli");
 					},
 					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
+						const msg = error.error.message || error.error.statusText || "";
+						// Better-auth signals unverified email distinctly; route the
+						// user to the verify-pending screen with their address so
+						// they don't have to retype it.
+						if (
+							msg.toLowerCase().includes("verif") ||
+							msg.toLowerCase().includes("verify")
+						) {
+							router.push(
+								`/verify-email?email=${encodeURIComponent(value.email)}`,
+							);
+							return;
+						}
+						toast.error(msg || "Kirish amalga oshmadi");
 					},
 				},
 			);
@@ -101,13 +113,21 @@ export default function SignInForm({
 						const error = field.state.meta.errors[0]?.message;
 						return (
 							<div className="space-y-1.5">
-								<Label htmlFor={field.name}>Parol</Label>
+								<div className="flex items-center justify-between">
+									<Label htmlFor={field.name}>Parol</Label>
+									<Link
+										href="/forgot-password"
+										className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+									>
+										Parolni unutdingizmi?
+									</Link>
+								</div>
 								<Input
 									id={field.name}
 									name={field.name}
 									type="password"
 									autoComplete="current-password"
-									placeholder="Kamida 8 ta belgi"
+									placeholder="Parolingiz"
 									aria-invalid={!!error}
 									value={field.state.value}
 									onBlur={field.handleBlur}
@@ -138,13 +158,12 @@ export default function SignInForm({
 
 			<p className="mt-8 text-sm text-muted-foreground">
 				Hisobingiz yo‘qmi?{" "}
-				<button
-					type="button"
-					onClick={onSwitchToSignUp}
+				<Link
+					href="/sign-up"
 					className="font-medium text-foreground underline-offset-4 hover:underline"
 				>
 					Ro‘yxatdan o‘ting
-				</button>
+				</Link>
 			</p>
 		</div>
 	);

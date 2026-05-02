@@ -6,6 +6,11 @@ export default defineSchema({
     authSubject: v.string(),
     displayName: v.optional(v.string()),
     createdAt: v.number(),
+    // Soft-delete marker. When isDeleted is true the user cannot sign
+    // in (auth code refuses to materialize a profile) and their threads
+    // are hidden. Data is retained until a future hard-delete job.
+    isDeleted: v.optional(v.boolean()),
+    deletedAt: v.optional(v.number()),
   }).index("by_auth_subject", ["authSubject"]),
 
   threads: defineTable({
@@ -42,6 +47,17 @@ export default defineSchema({
     count: v.number(),
     updatedAt: v.number(),
   }).index("by_user_window", ["userId", "windowKey"]),
+
+  // Per-target email throttle for password-reset (and verification
+  // resend). Independent of better-auth's per-IP rate limit so a
+  // victim cannot be reset-bombed by an attacker rotating IPs.
+  emailThrottle: defineTable({
+    targetEmail: v.string(),
+    kind: v.union(v.literal("reset"), v.literal("verify")),
+    count: v.number(),
+    windowStart: v.number(),
+    updatedAt: v.number(),
+  }).index("by_target_kind", ["targetEmail", "kind"]),
 
   usageEvents: defineTable({
     userId: v.id("users"),
