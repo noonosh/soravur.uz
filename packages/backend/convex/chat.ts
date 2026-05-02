@@ -146,6 +146,12 @@ export const generateAssistantReply = action({
       });
     }
 
+    // Stable id for cross-system error correlation. Used in structured
+    // error logs so Sentry/Axiom can be joined back to the Convex event.
+    const requestId = `req_${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2, 10)}`;
+
     // Build conversation history (last N messages)
     const recentMessages = messages.slice(-MAX_CONTEXT_MESSAGES);
     const conversationMessages: ChatCompletionMessage[] = [
@@ -272,10 +278,21 @@ export const generateAssistantReply = action({
 
       return messageId;
     } catch (error) {
-      console.error("OpenRouter API error:", error);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error("Error details:", errorMessage);
+      // Structured log so Convex log search and any forwarder (Axiom,
+      // Datadog, Sentry via web) can correlate by requestId/userId.
+      console.error(
+        JSON.stringify({
+          event: "chat.openrouter_error",
+          requestId,
+          userId: thread.userId,
+          threadId: args.threadId,
+          model: selectedModel,
+          message: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+        })
+      );
 
       // Determine error type and provide appropriate message
       let userMessage =
