@@ -2,12 +2,8 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import {
-  OpenRouterClient,
-  buildSystemPrompt,
-  isLikelyUzbek,
-  type ChatCompletionMessage,
-} from "./openrouter";
+import { OpenRouterClient, isLikelyUzbek } from "./openrouter";
+import { buildConversationMessages, type Subject } from "./prompts";
 
 const MAX_CONTEXT_MESSAGES = 20;
 const REQUESTS_PER_MINUTE_LIMIT = 12;
@@ -48,6 +44,11 @@ export const generateAssistantReply = action({
     threadId: v.id("threads"),
     userMessageId: v.id("messages"),
     model: v.string(),
+    subject: v.union(
+      v.literal("maths"),
+      v.literal("literature"),
+      v.literal("programming")
+    ),
   },
   handler: async (ctx, args): Promise<Id<"messages">> => {
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -58,6 +59,8 @@ export const generateAssistantReply = action({
     if (!args.model || args.model.trim().length === 0) {
       throw new Error("Model is required");
     }
+
+    const subject: Subject = args.subject;
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -154,18 +157,10 @@ export const generateAssistantReply = action({
 
     // Build conversation history (last N messages)
     const recentMessages = messages.slice(-MAX_CONTEXT_MESSAGES);
-    const conversationMessages: ChatCompletionMessage[] = [
-      {
-        role: "system",
-        content: buildSystemPrompt(),
-      },
-      ...recentMessages
-        .filter((m) => m.role === "user" || m.role === "assistant")
-        .map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-    ];
+    const conversationMessages = buildConversationMessages(
+      subject,
+      recentMessages
+    );
 
     // Generate assistant reply (streaming).
     const client = new OpenRouterClient(apiKey);
