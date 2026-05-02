@@ -193,8 +193,14 @@ export const generateAssistantReply = action({
       let usage: { prompt: number; completion: number; total: number } | undefined;
       let lastPatchAt = 0;
 
-      const PATCH_MIN_INTERVAL_MS = 80;
-      const PATCH_MIN_DELTA_CHARS = 24;
+      // Tighter than the original 80ms / 24-char throttle so deltas
+      // surface as continuous typing rather than visible chunks. ~25
+      // patches/sec at most against DeepSeek's ~250 char/sec output —
+      // Convex mutations handle this rate fine, and the perceived
+      // streaming smoothness matches what users expect from modern
+      // chat UIs.
+      const PATCH_MIN_INTERVAL_MS = 40;
+      const PATCH_MIN_DELTA_CHARS = 8;
       let unflushedSinceLastPatch = 0;
 
       const flush = (final: boolean) => {
