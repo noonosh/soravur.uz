@@ -30,9 +30,35 @@ vi.mock("./chat-thread-list", () => ({
 	ChatThreadList: () => null,
 }));
 
-import { ChatInterface } from "./chat-interface";
+import { ChatInterface, composerPosition } from "./chat-interface";
 
 const userId = "users:test" as Id<"users">;
+const threadId = "threads:abc" as Id<"threads">;
+
+describe("composerPosition", () => {
+	it("centers when no thread is selected (welcome state)", () => {
+		expect(composerPosition(null, undefined)).toBe("center");
+	});
+
+	it("centers when a thread is selected but has zero messages", () => {
+		expect(composerPosition(threadId, [])).toBe("center");
+	});
+
+	it("pins to bottom while messages for an existing thread are loading", () => {
+		// useQuery is undefined while in-flight — the user is on a real
+		// thread, so we don't want the composer to bounce up only to drop
+		// back down once messages arrive.
+		expect(composerPosition(threadId, undefined)).toBe("bottom");
+	});
+
+	it("pins to bottom once the conversation has any messages", () => {
+		const messages = [
+			// Casts are fine — composerPosition only reads .length.
+			{} as never,
+		];
+		expect(composerPosition(threadId, messages)).toBe("bottom");
+	});
+});
 
 describe("ChatInterface composer placement", () => {
 	beforeEach(() => {

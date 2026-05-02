@@ -74,6 +74,19 @@ const PROMPT_POOLS: Record<ModelType, string[]> = {
   ],
 };
 
+// Decides whether the composer renders centered (welcome state) or
+// pinned to the bottom (active conversation / loading existing thread).
+// Exported for unit testing — keeps the layout switch coverable
+// without faking thread-selection flows through child components.
+export function composerPosition(
+  selectedThreadId: Id<"threads"> | null,
+  messages: Array<Doc<"messages">> | undefined,
+): "center" | "bottom" {
+  if (messages && messages.length === 0) return "center";
+  if (!selectedThreadId) return "center";
+  return "bottom";
+}
+
 function pickStarterPrompts(): Array<{ prompt: string; subject: ModelType }> {
   const subjects = Object.keys(PROMPT_POOLS) as ModelType[];
   const items = subjects.map((subject) => {
@@ -311,29 +324,42 @@ export function ChatInterface({
             thread is selected) — bottom-pinned input below a vast empty
             void felt unwelcoming. Once messages exist (or are still
             loading for an existing thread), the composer drops to the
-            footer and the scroll list takes the space above it. */}
-        {messages && messages.length === 0 ? (
+            footer and the scroll list takes the space above it. The
+            position decision lives in `composerPosition` so the
+            rendered branch and the unit tests share one source of
+            truth. */}
+        {composerPosition(selectedThreadId, messages) === "center" ? (
           <CenteredCompose data-composer-position="center">
-            <Welcome
-              kicker="Savol bering"
-              title="Bugun nimani tushunmoqchisiz?"
-              body="Mavzuni qisqa yozing yoki quyidagilardan birini tanlang — yechimni tushuntirib, asosiy tushunchalarni qadamlab ko‘rsatib beraman."
-            />
-            <ChatComposer onSend={handleSendMessage} isLoading={isGenerating} />
-            <StarterList
-              threadId={selectedThreadId}
-              isGenerating={isGenerating}
-              onPick={handleSendMessage}
-            />
-          </CenteredCompose>
-        ) : !selectedThreadId ? (
-          <CenteredCompose data-composer-position="center">
-            <Welcome
-              kicker="Boshlash"
-              title="Yangi suhbatni boshlang."
-              body="O‘zbek tilida savolingizni yozing — matematika, adabiyot va dasturlash bo‘yicha qadamma-qadam tushuntirib beraman."
-            />
-            <ChatComposer onSend={handleSendMessage} isLoading={isGenerating} />
+            {selectedThreadId ? (
+              <>
+                <Welcome
+                  kicker="Savol bering"
+                  title="Bugun nimani tushunmoqchisiz?"
+                  body="Mavzuni qisqa yozing yoki quyidagilardan birini tanlang — yechimni tushuntirib, asosiy tushunchalarni qadamlab ko‘rsatib beraman."
+                />
+                <ChatComposer
+                  onSend={handleSendMessage}
+                  isLoading={isGenerating}
+                />
+                <StarterList
+                  threadId={selectedThreadId}
+                  isGenerating={isGenerating}
+                  onPick={handleSendMessage}
+                />
+              </>
+            ) : (
+              <>
+                <Welcome
+                  kicker="Boshlash"
+                  title="Yangi suhbatni boshlang."
+                  body="O‘zbek tilida savolingizni yozing — matematika, adabiyot va dasturlash bo‘yicha qadamma-qadam tushuntirib beraman."
+                />
+                <ChatComposer
+                  onSend={handleSendMessage}
+                  isLoading={isGenerating}
+                />
+              </>
+            )}
           </CenteredCompose>
         ) : (
           <>
