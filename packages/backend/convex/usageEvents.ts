@@ -61,6 +61,52 @@ export const getDailyTokens = query({
   },
 });
 
+// Admin-only: recent usage events across all users + 24h totals.
+// Gated by the ADMIN_EMAILS env var (comma-separated). The caller must
+// be authenticated and their email must appear in that list.
+export const getAdminUsage = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+    const adminEmails = (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const callerEmail = (identity.email || "").toLowerCase();
+    if (!callerEmail || !adminEmails.includes(callerEmail)) {
+      throw new Error("Forbidden");
+    }
+
+    const since = startOfDayMs(Date.now());
+    const limit = Math.min(args.limit ?? 100, 500);
+
+    const recentDesc = await ctx.db
+      .query("usageEvents")
+      .withIndex("by_createdAt", (q) => q.gte("createdAt", since))
+      .order("desc")
+      .take(limit);
+
+    const dailyEvents = await ctx.db
+      .query("usageEvents")
+      .withIndex("by_createdAt", (q) => q.gte("createdAt", since))
+      .collect();
+
+    const totals = {
+      events: dailyEvents.length,
+      tokens: dailyEvents.reduce((s, e) => s + (e.tokensTotal || 0), 0),
+      cost: dailyEvents.reduce((s, e) => s + (e.costEstimateUsd || 0), 0),
+      uniqueUsers: new Set(dailyEvents.map((e) => e.userId)).size,
+    };
+
+    return { sinceMs: since, totals, recent: recentDesc };
+  },
+});
+
 export const getUserUsage = query({
   args: {
     userId: v.id("users"),
