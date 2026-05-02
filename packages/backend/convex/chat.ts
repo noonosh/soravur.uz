@@ -9,7 +9,6 @@ import {
   type ChatCompletionMessage,
 } from "./openrouter";
 
-const DEFAULT_MODEL = "openai/gpt-4o-mini";
 const MAX_CONTEXT_MESSAGES = 20;
 const REQUESTS_PER_MINUTE_LIMIT = 12;
 
@@ -32,12 +31,16 @@ export const generateAssistantReply = action({
   args: {
     threadId: v.id("threads"),
     userMessageId: v.id("messages"),
-    model: v.optional(v.string()),
+    model: v.string(),
   },
   handler: async (ctx, args): Promise<Id<"messages">> => {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       throw new Error("OpenRouter API key not configured");
+    }
+
+    if (!args.model || args.model.trim().length === 0) {
+      throw new Error("Model is required");
     }
 
     const identity = await ctx.auth.getUserIdentity();
@@ -79,8 +82,7 @@ export const generateAssistantReply = action({
       throw new Error("User message not found");
     }
 
-    // Determine which model to use
-    const selectedModel = args.model || DEFAULT_MODEL;
+    const selectedModel = args.model;
 
     // Check if the user message is in Uzbek
     if (!isLikelyUzbek(userMessage.content)) {

@@ -157,6 +157,13 @@ http.route({
       );
     }
 
+    if (!body.model || body.model.trim().length === 0) {
+      return withCors(
+        request,
+        new Response("Model is required", { status: 400 })
+      );
+    }
+
     // Append user message
     const userMessageId = await ctx.runMutation(
       api.messages.appendUserMessage,
