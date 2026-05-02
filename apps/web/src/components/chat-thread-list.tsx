@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@soravur/backend/convex/_generated/api";
+import { useEffect, useState } from "react";
+import { useThreads, type ThreadsView } from "@/lib/use-threads";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -15,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, RotateCcw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { uz } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -29,99 +28,138 @@ interface ChatThreadListProps {
   onNewThread: () => void;
 }
 
+const TABS: Array<{ value: ThreadsView; label: string }> = [
+  { value: "active", label: "Faol" },
+  { value: "archived", label: "Arxiv" },
+];
+
 export function ChatThreadList({
   userId,
   selectedThreadId,
   onThreadSelect,
   onNewThread,
 }: ChatThreadListProps) {
-  const threads = useQuery(api.threads.listThreads, { userId });
-  const archiveThread = useMutation(api.threads.archiveThread);
-  const [threadToDelete, setThreadToDelete] = useState<Id<"threads"> | null>(
+  const [view, setView] = useState<ThreadsView>("active");
+  const { threads, archive, unarchive } = useThreads(userId, view);
+  const [threadToArchive, setThreadToArchive] = useState<Id<"threads"> | null>(
     null
   );
 
-  const handleDeleteClick = (e: React.MouseEvent, threadId: Id<"threads">) => {
+  // Auto-select the most recent active thread on first load. Skip when
+  // the user is browsing archived threads — archive view shouldn't pull
+  // selection away from whatever the user was just looking at.
+  useEffect(() => {
+    if (
+      view === "active" &&
+      threads &&
+      threads.length > 0 &&
+      !selectedThreadId
+    ) {
+      onThreadSelect(threads[0]._id);
+    }
+  }, [view, threads, selectedThreadId, onThreadSelect]);
+
+  const handleArchiveClick = (
+    e: React.MouseEvent,
+    threadId: Id<"threads">
+  ) => {
     e.stopPropagation();
-    setThreadToDelete(threadId);
+    setThreadToArchive(threadId);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!threadToDelete || !threads) return;
-
+  const handleConfirmArchive = async () => {
+    if (!threadToArchive || !threads) return;
     try {
-      await archiveThread({ threadId: threadToDelete });
-      toast.success("Suhbat o'chirildi");
-
-      // If the deleted thread was selected, switch to closest available thread
-      if (selectedThreadId === threadToDelete) {
-        const deletedIndex = threads.findIndex((t) => t._id === threadToDelete);
-
-        if (deletedIndex !== -1) {
-          // Try to select the next thread (one after deleted)
-          if (deletedIndex + 1 < threads.length) {
-            onThreadSelect(threads[deletedIndex + 1]._id);
-          }
-          // Otherwise, try to select the previous thread
-          else if (deletedIndex > 0) {
-            onThreadSelect(threads[deletedIndex - 1]._id);
-          }
-          // No threads left, create new one
-          else {
+      await archive(threadToArchive);
+      toast.success("Suhbat arxivlandi");
+      if (selectedThreadId === threadToArchive) {
+        const idx = threads.findIndex((t) => t._id === threadToArchive);
+        if (idx !== -1) {
+          if (idx + 1 < threads.length) {
+            onThreadSelect(threads[idx + 1]._id);
+          } else if (idx > 0) {
+            onThreadSelect(threads[idx - 1]._id);
+          } else {
             onNewThread();
           }
-        } else {
-          // Fallback: create new thread if we can't find the deleted one
-          onNewThread();
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Xatolik yuz berdi");
-      console.error(error);
     } finally {
-      setThreadToDelete(null);
+      setThreadToArchive(null);
     }
   };
 
-  if (!threads) {
-    return (
-      <div className="space-y-2">
-        <Skeleton className="h-9 w-full rounded-md" />
-        <div className="space-y-1.5 pt-3">
-          <Skeleton className="h-12 w-full rounded-md" />
-          <Skeleton className="h-12 w-full rounded-md" />
-          <Skeleton className="h-12 w-full rounded-md" />
-        </div>
-      </div>
-    );
-  }
+  const handleRestore = async (
+    e: React.MouseEvent,
+    threadId: Id<"threads">
+  ) => {
+    e.stopPropagation();
+    try {
+      await unarchive(threadId);
+      toast.success("Suhbat tiklandi");
+    } catch {
+      toast.error("Tiklashda xatolik");
+    }
+  };
 
   return (
     <>
       <div className="space-y-3">
-        <Button
-          onClick={onNewThread}
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2 h-9 border-dashed border-border/70 hover:border-border bg-transparent text-muted-foreground hover:text-foreground"
+        {/* View tabs */}
+        <div
+          role="tablist"
+          aria-label="Suhbatlar ko'rinishi"
+          className="grid grid-cols-2 p-0.5 rounded-md bg-muted/50 text-sm"
         >
-          <Plus className="h-4 w-4" strokeWidth={1.5} />
-          <span className="text-sm font-medium">Yangi suhbat</span>
-        </Button>
+          {TABS.map((tab) => {
+            const active = view === tab.value;
+            return (
+              <button
+                key={tab.value}
+                role="tab"
+                aria-selected={active}
+                type="button"
+                onClick={() => setView(tab.value)}
+                className={cn(
+                  "h-8 rounded-sm transition-colors text-xs font-medium tracking-tight",
+                  active
+                    ? "bg-background text-foreground shadow-[0_1px_0_0_rgba(0,0,0,0.04)]"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-        {threads.length === 0 ? (
-          <div className="text-center py-10 px-2">
-            <p className="text-sm text-foreground font-medium">
-              Hali suhbatlar yo&apos;q
-            </p>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Yangi suhbat yarating va savolingizni yozing.
-            </p>
+        {view === "active" && (
+          <Button
+            onClick={onNewThread}
+            variant="outline"
+            size="sm"
+            className="w-full justify-start gap-2 h-9 border-dashed border-border/70 hover:border-border bg-transparent text-muted-foreground hover:text-foreground"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.5} />
+            <span className="text-sm font-medium">Yangi suhbat</span>
+          </Button>
+        )}
+
+        {!threads ? (
+          <div className="space-y-1.5 pt-1">
+            <Skeleton className="h-12 w-full rounded-md" />
+            <Skeleton className="h-12 w-full rounded-md" />
+            <Skeleton className="h-12 w-full rounded-md" />
           </div>
+        ) : threads.length === 0 ? (
+          <EmptyState view={view} />
         ) : (
           <ul className="-mx-2">
             {threads.map((thread) => {
               const isActive = selectedThreadId === thread._id;
+              const isArchived = view === "archived";
               return (
                 <li key={thread._id} className="group relative">
                   <button
@@ -133,7 +171,6 @@ export function ChatThreadList({
                       isActive && "bg-muted/80"
                     )}
                   >
-                    {/* Active accent bar */}
                     <span
                       aria-hidden
                       className={cn(
@@ -160,14 +197,28 @@ export function ChatThreadList({
                       </div>
                     </div>
                   </button>
-                  <button
-                    type="button"
-                    aria-label="Suhbatni arxivlash"
-                    onClick={(e) => handleDeleteClick(e, thread._id)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center size-7 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-opacity"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  </button>
+                  {isArchived ? (
+                    <button
+                      type="button"
+                      aria-label="Suhbatni tiklash"
+                      onClick={(e) => handleRestore(e, thread._id)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center size-7 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-muted focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-opacity"
+                    >
+                      <RotateCcw
+                        className="h-3.5 w-3.5"
+                        strokeWidth={1.5}
+                      />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      aria-label="Suhbatni arxivlash"
+                      onClick={(e) => handleArchiveClick(e, thread._id)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center size-7 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-opacity"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -176,30 +227,55 @@ export function ChatThreadList({
       </div>
 
       <AlertDialog
-        open={!!threadToDelete}
-        onOpenChange={(open) => !open && setThreadToDelete(null)}
+        open={!!threadToArchive}
+        onOpenChange={(open) => !open && setThreadToArchive(null)}
       >
         <AlertDialogContent className="border-border/70">
           <AlertDialogHeader>
             <AlertDialogTitle className="tracking-tight">
-              Suhbatni o&apos;chirish
+              Suhbatni arxivlash
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Bu suhbatni o&apos;chirishni xohlaysizmi? Bu amalni qaytarib
-              bo&apos;lmaydi.
+              Suhbat arxivga ko&apos;chiriladi. Istalgan vaqtda
+              &quot;Arxiv&quot; tabidan tiklab olishingiz mumkin.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleConfirmArchive}
+              className="bg-foreground text-background hover:opacity-90"
             >
-              O&apos;chirish
+              Arxivlash
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function EmptyState({ view }: { view: ThreadsView }) {
+  if (view === "archived") {
+    return (
+      <div className="text-center py-10 px-2">
+        <p className="text-sm text-foreground font-medium">
+          Arxivda hech narsa yo&apos;q
+        </p>
+        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+          Suhbatlarni arxivlasangiz, ular shu yerda paydo bo&apos;ladi.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="text-center py-10 px-2">
+      <p className="text-sm text-foreground font-medium">
+        Hali suhbatlar yo&apos;q
+      </p>
+      <p className="text-xs text-muted-foreground mt-1.5">
+        Yangi suhbat yarating va savolingizni yozing.
+      </p>
+    </div>
   );
 }

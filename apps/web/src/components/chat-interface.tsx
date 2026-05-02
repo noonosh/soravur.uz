@@ -52,7 +52,8 @@ export function ChatInterface({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const threads = useQuery(api.threads.listThreads, { userId });
+  // Thread fetching is fully owned by ChatThreadList via the
+  // useThreads hook now (includes auto-select-first behaviour).
   const messages = useQuery(
     api.messages.listMessages,
     selectedThreadId ? { threadId: selectedThreadId } : "skip"
@@ -66,13 +67,6 @@ export function ChatInterface({
     }
     return cloudUrl;
   }, []);
-
-  // Auto-select first thread or create new one
-  useEffect(() => {
-    if (threads && threads.length > 0 && !selectedThreadId) {
-      setSelectedThreadId(threads[0]._id);
-    }
-  }, [threads, selectedThreadId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
