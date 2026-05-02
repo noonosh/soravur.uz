@@ -8,22 +8,36 @@ const http = httpRouter();
 
 const SITE_URL = process.env.SITE_URL;
 
+function isAllowedOrigin(origin: string): boolean {
+  if (!origin) return false;
+  if (SITE_URL && origin === SITE_URL) return true;
+
+  // Allow localhost only when SITE_URL itself is a localhost dev URL
+  // (or unset, e.g. local convex dev without SITE_URL exported).
+  const siteIsLocal =
+    !SITE_URL ||
+    SITE_URL.includes("localhost") ||
+    SITE_URL.includes("127.0.0.1");
+  if (siteIsLocal) {
+    try {
+      const host = new URL(origin).hostname;
+      return host === "localhost" || host === "127.0.0.1";
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get("Origin") ?? "";
-
-  // Always allow the requesting origin in development or if no SITE_URL is set
-  let allowOrigin = origin;
-  if (
-    SITE_URL &&
-    !origin.includes("localhost") &&
-    !origin.includes("127.0.0.1")
-  ) {
-    // In production with SITE_URL set, only allow that origin
-    allowOrigin = origin === SITE_URL ? origin : SITE_URL;
+  if (!isAllowedOrigin(origin)) {
+    // No CORS headers for disallowed origins. Browser will block the request.
+    return {};
   }
-
   return {
-    "Access-Control-Allow-Origin": allowOrigin || "*",
+    "Access-Control-Allow-Origin": origin,
+    "Vary": "Origin",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers":
       "Content-Type, Authorization, X-Convex-Client",
