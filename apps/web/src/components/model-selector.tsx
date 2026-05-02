@@ -8,7 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calculator, BookOpen, Code2, ChevronDown } from "lucide-react";
+import { Calculator, BookOpen, Code2, ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import modelsConfig from "../../../../models.json";
 
 export type ModelType = "maths" | "literature" | "programming";
@@ -22,9 +23,9 @@ interface ModelOption {
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
-  calculator: <Calculator className="h-4 w-4" />,
-  "book-open": <BookOpen className="h-4 w-4" />,
-  "code-2": <Code2 className="h-4 w-4" />,
+  calculator: <Calculator className="h-4 w-4" strokeWidth={1.5} />,
+  "book-open": <BookOpen className="h-4 w-4" strokeWidth={1.5} />,
+  "code-2": <Code2 className="h-4 w-4" strokeWidth={1.5} />,
 };
 
 const MODEL_OPTIONS: ModelOption[] = modelsConfig.models.map(
@@ -38,7 +39,10 @@ const MODEL_OPTIONS: ModelOption[] = modelsConfig.models.map(
     id: model.id as ModelType,
     name: model.displayName,
     description: model.description,
-    icon: ICON_MAP[model.icon] || <Calculator className="h-4 w-4" />,
+    icon:
+      ICON_MAP[model.icon] || (
+        <Calculator className="h-4 w-4" strokeWidth={1.5} />
+      ),
     model: model.openRouterModel,
   })
 );
@@ -59,34 +63,61 @@ export function ModelSelector({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="gap-2 h-9 px-4 w-full md:w-auto justify-center md:min-w-[160px]"
+          className="gap-2 h-9 px-3.5 rounded-full border border-border/70 hover:bg-muted/60 hover:border-border w-full md:w-auto md:min-w-[180px] justify-center font-medium"
         >
-          {currentModel.icon}
-          <span className="font-medium text-sm">{currentModel.name}</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+          <span className="text-muted-foreground">{currentModel.icon}</span>
+          <span className="text-sm tracking-tight">{currentModel.name}</span>
+          <ChevronDown
+            className="h-3.5 w-3.5 opacity-50"
+            strokeWidth={1.5}
+          />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        {MODEL_OPTIONS.map((option) => (
-          <DropdownMenuItem
-            key={option.id}
-            onClick={() => {
-              onModelChange(option.id);
-              setOpen(false);
-            }}
-            className="flex items-start gap-3 p-3 cursor-pointer"
-          >
-            <div className="mt-0.5">{option.icon}</div>
-            <div className="flex-1">
-              <div className="font-medium text-sm">{option.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {option.description}
+      <DropdownMenuContent
+        align="center"
+        sideOffset={8}
+        className="w-72 p-1.5 border-border/70"
+      >
+        {MODEL_OPTIONS.map((option) => {
+          const isActive = option.id === selectedModel;
+          return (
+            <DropdownMenuItem
+              key={option.id}
+              onClick={() => {
+                onModelChange(option.id);
+                setOpen(false);
+              }}
+              className={cn(
+                "flex items-start gap-3 p-2.5 rounded-sm cursor-pointer focus:bg-muted",
+                isActive && "bg-muted/60"
+              )}
+            >
+              <span
+                className={cn(
+                  "mt-0.5 grid place-items-center size-7 rounded-md border border-border/70 bg-background",
+                  isActive && "border-foreground/40"
+                )}
+              >
+                {option.icon}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium tracking-tight">
+                    {option.name}
+                  </span>
+                  {isActive && (
+                    <Check className="h-3.5 w-3.5 text-brand" strokeWidth={2} />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                  {option.description}
+                </p>
               </div>
-            </div>
-          </DropdownMenuItem>
-        ))}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
