@@ -29,15 +29,32 @@ export default function SignInForm() {
 						router.push("/");
 						toast.success("Kirish muvaffaqiyatli");
 					},
-					onError: (error) => {
+					onError: async (error) => {
 						const msg = error.error.message || error.error.statusText || "";
-						// Better-auth signals unverified email distinctly; route the
-						// user to the verify-pending screen with their address so
-						// they don't have to retype it.
-						if (
-							msg.toLowerCase().includes("verif") ||
-							msg.toLowerCase().includes("verify")
-						) {
+						const code =
+							(error.error as { code?: string }).code?.toLowerCase() ?? "";
+						// Better-auth refuses sign-in for unverified accounts but
+						// does NOT auto-resend the verification email. Without
+						// this nudge the user lands on /verify-email with no
+						// fresh mail in their inbox and has to manually click
+						// "qayta yuborish" — confusing and the most-reported
+						// production bug. Fire-and-forget the send (the page
+						// also surfaces a manual resend button if this throws,
+						// e.g. on emailThrottle hit).
+						const lower = msg.toLowerCase();
+						const isUnverified =
+							code === "email_not_verified" ||
+							lower.includes("verif") ||
+							lower.includes("verify");
+						if (isUnverified) {
+							try {
+								await authClient.sendVerificationEmail({
+									email: value.email,
+									callbackURL: "/",
+								});
+							} catch {
+								/* noop — verify-email page can re-send */
+							}
 							router.push(
 								`/verify-email?email=${encodeURIComponent(value.email)}`,
 							);
