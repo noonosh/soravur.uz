@@ -4,15 +4,20 @@
   "scripts": {
     "dev": "convex dev",
     "dev:setup": "convex dev --configure --until-success",
-    "check-types": "tsc --noEmit -p convex/tsconfig.json"
+    "check-types": "tsc --noEmit -p convex/tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "@soravur/config": "workspace:*",
     "@types/node": "^24.3.0",
+    "convex-test": "0.0.51",
     "typescript": "catalog:",
-    "@soravur/config": "workspace:*"
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "convex": "catalog:",
