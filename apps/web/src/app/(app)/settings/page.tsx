@@ -56,7 +56,7 @@ export default function SettingsPage() {
 					},
 				},
 			});
-			toast.success("Hisob o'chirildi");
+			toast.success("Profil o'chirildi");
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "O'chirishda xatolik",
@@ -77,7 +77,7 @@ export default function SettingsPage() {
 					Tajribangizni sozlang.
 				</h1>
 				<p className="text-sm text-muted-foreground">
-					Mavzu, til va hisob harakatlari.
+					Mavzu, til va profil harakatlari.
 				</p>
 			</header>
 
@@ -125,7 +125,7 @@ export default function SettingsPage() {
 				<div>
 					<p className="text-sm font-medium">Sessiya</p>
 					<p className="text-xs text-muted-foreground mt-1">
-						Hisobdan chiqing — keyingi safar qayta kirasiz.
+						Tizimdan chiqing — keyingi safar qayta kirasiz.
 					</p>
 				</div>
 				<Button
@@ -140,9 +140,9 @@ export default function SettingsPage() {
 
 			<section className="space-y-3 border-t border-border/70 pt-8">
 				<div>
-					<p className="text-sm font-medium text-destructive">Hisobni o&apos;chirish</p>
+					<p className="text-sm font-medium text-destructive">Profilni o&apos;chirish</p>
 					<p className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
-						Hisobingiz o&apos;chiriladi va siz tizimga kira olmaysiz. Suhbatlaringiz
+						Profilingiz o&apos;chiriladi va siz tizimga kira olmaysiz. Suhbatlaringiz
 						saqlanadi va tiklash kerak bo&apos;lsa biz bilan bog&apos;laning.
 					</p>
 				</div>
@@ -152,7 +152,7 @@ export default function SettingsPage() {
 					className="gap-2 active:translate-y-[1px] transition-transform"
 				>
 					<Trash2 className="h-4 w-4" strokeWidth={1.5} />
-					Hisobni o&apos;chirish
+					Profilni o&apos;chirish
 				</Button>
 			</section>
 
@@ -163,10 +163,10 @@ export default function SettingsPage() {
 				<AlertDialogContent className="border-border/70">
 					<AlertDialogHeader>
 						<AlertDialogTitle className="tracking-tight">
-							Hisobni o&apos;chirishni tasdiqlang
+							Profilni o&apos;chirishni tasdiqlang
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							Hisobingiz o&apos;chiriladi va siz darhol tizimdan chiqarilasiz. Bu
+							Profilingiz o&apos;chiriladi va siz darhol tizimdan chiqarilasiz. Bu
 							amalni ortga qaytarish uchun biz bilan bog&apos;laning.
 						</AlertDialogDescription>
 					</AlertDialogHeader>

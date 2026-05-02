@@ -82,7 +82,7 @@ function VerifyEmailInner() {
 			</div>
 
 			<p className="mt-8 text-sm text-muted-foreground">
-				Boshqa hisobga kirmoqchimisiz?{" "}
+				Boshqa profilga kirmoqchimisiz?{" "}
 				<Link
 					href="/sign-in"
 					className="font-medium text-foreground underline-offset-4 hover:underline"

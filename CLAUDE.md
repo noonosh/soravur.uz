@@ -65,6 +65,14 @@ Ask if I want one of two options:
 2/ SMALL CHANGE: Work through interactively ONE question per review section
 FOR EACH STAGE OF REVIEW: output the explanation and pros and cons of each stage's questions AND your opinionated recommendation and why, and then use AskUserQuestion. Also NUMBER issues and then give LETTERS for options and when using AskUserQuestion make sure each option clearly labels the issue NUMBER and option LETTER so the user doesn't get confused. Make the recommended option always the 1st option.
 
+## Commit & push rules (mandatory)
+
+These apply on every branch. Do not skip them.
+
+1. **Run the full test suite before every commit.** From repo root: `bun run test`. The commit only happens if tests pass. If a test fails, fix it (do not `--no-verify`, do not skip the test) and re-run before committing.
+2. **Every new feature commit must ship its own tests.** If a commit introduces or changes user-visible behavior — new component, new Convex function, new HTTP route, new branching logic — write the tests in the same commit. Web tests use Vitest + Testing Library (`apps/web/src/**/*.test.tsx`); follow the existing `sign-in-form.test.tsx` / `sign-up-form.test.tsx` patterns. Bug-fix commits should add a regression test that fails without the fix.
+3. **Review the diff before pushing.** Before `git push` on any branch, run `git log <upstream>..HEAD --oneline` and `git diff <upstream>..HEAD` (or `git diff origin/main...HEAD` for new branches) and read the output. Confirm: every commit message matches its changes, no unintended files, no debug logging or commented-out code, no secrets. Only push after this review passes — and surface anything noteworthy to the user before pushing.
+
 ## Stack
 
 Bun + Turborepo monorepo. Next.js 16 (React 19.2, React Compiler on, `typedRoutes`) frontend + Convex reactive backend + Better-Auth. Tailwind v4, shadcn/ui (`new-york`, base `neutral`). LLM via OpenRouter. UI/system prompts are Uzbek-only.
@@ -86,8 +94,8 @@ Run from repo root unless noted. Package manager: bun (`packageManager: bun@1.3.
 - `bun run dev:setup` — `convex dev --configure --until-success` (first-time Convex project setup; creates `_generated/`).
 - `bun run build` — turbo build all.
 - `bun run check-types` — turbo type-check all (no separate `lint` task is wired beyond turbo's pass-through).
+- `bun run test` — turbo test across packages. Web uses Vitest + Testing Library (`bun run test` / `bun run test:watch` from `apps/web/`). Required before every commit (see "Commit & push rules" above).
 - Convex env: `bunx convex env set OPENROUTER_API_KEY ...` and `bunx convex env set SITE_URL ...` from `packages/backend/`. Web needs `NEXT_PUBLIC_CONVEX_URL`.
-- No test runner is configured.
 
 ## Backend architecture (Convex)
 

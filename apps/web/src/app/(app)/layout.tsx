@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { useConvexAuth } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import { SoravurIcon } from "@/components/soravur-logo";
-import Loader from "@/components/loader";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Authenticated wrapper for /account and /settings. Same chrome as the
 // chat shell but without the model selector (unrelated context); a
@@ -35,32 +35,34 @@ function AppShell({ children }: { children: React.ReactNode }) {
 	);
 }
 
-function RedirectToSignIn() {
-	const router = useRouter();
-	useEffect(() => {
-		router.push("/sign-in");
-	}, [router]);
+// Minimal page-body skeleton for the brief window before auth resolves
+// — keeps the shell visible from first paint instead of a full-screen
+// loader. Account/settings pages mount inside this once authenticated.
+function PageSkeleton() {
 	return (
-		<div className="min-h-[100dvh] flex items-center justify-center">
-			<Loader />
+		<div className="space-y-4">
+			<Skeleton className="h-7 w-48 rounded-md" />
+			<Skeleton className="h-4 w-full rounded-md" />
+			<Skeleton className="h-4 w-3/4 rounded-md" />
+			<div className="pt-6 space-y-3">
+				<Skeleton className="h-10 w-full rounded-md" />
+				<Skeleton className="h-10 w-full rounded-md" />
+			</div>
 		</div>
 	);
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+	const { isAuthenticated, isLoading } = useConvexAuth();
+	const router = useRouter();
+
+	useEffect(() => {
+		if (!isLoading && !isAuthenticated) {
+			router.push("/sign-in");
+		}
+	}, [isLoading, isAuthenticated, router]);
+
 	return (
-		<>
-			<Authenticated>
-				<AppShell>{children}</AppShell>
-			</Authenticated>
-			<Unauthenticated>
-				<RedirectToSignIn />
-			</Unauthenticated>
-			<AuthLoading>
-				<div className="min-h-[100dvh] flex items-center justify-center">
-					<Loader />
-				</div>
-			</AuthLoading>
-		</>
+		<AppShell>{isAuthenticated ? children : <PageSkeleton />}</AppShell>
 	);
 }

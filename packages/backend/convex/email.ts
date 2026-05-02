@@ -143,10 +143,10 @@ export function verificationEmail(opts: {
     <tr><td style="padding:16px 36px 8px 36px">
       <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:500;letter-spacing:-0.01em">${greeting}</h1>
       <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#1a1a1a">
-        ${APP_NAME} hisobingizni tasdiqlash uchun quyidagi tugmani bosing. Havola 24 soat davomida amal qiladi.
+        ${APP_NAME} profilingizni tasdiqlash uchun quyidagi tugmani bosing. Havola 24 soat davomida amal qiladi.
       </p>
     </td></tr>
-    ${buttonRow("Hisobni tasdiqlash", opts.url)}
+    ${buttonRow("Profilni tasdiqlash", opts.url)}
     <tr><td style="padding:0 36px 24px 36px">
       <p style="margin:0;font-size:13px;color:#737373;word-break:break-all">
         Yoki shu havolani brauzerga nusxalab qo'ying:<br/>
@@ -154,10 +154,10 @@ export function verificationEmail(opts: {
       </p>
     </td></tr>
   `);
-	const text = `${greeting}\n\n${APP_NAME} hisobingizni tasdiqlash uchun quyidagi havolaga o'ting (24 soat amal qiladi):\n\n${opts.url}\n\nAgar siz bu xatni kutmagan bo'lsangiz, e'tibor bermang.`;
+	const text = `${greeting}\n\n${APP_NAME} profilingizni tasdiqlash uchun quyidagi havolaga o'ting (24 soat amal qiladi):\n\n${opts.url}\n\nAgar siz bu xatni kutmagan bo'lsangiz, e'tibor bermang.`;
 	return {
 		to: opts.to,
-		subject: `${APP_NAME} — hisobingizni tasdiqlang`,
+		subject: `${APP_NAME} — profilingizni tasdiqlang`,
 		html,
 		text,
 	};
@@ -175,7 +175,7 @@ export function passwordResetEmail(opts: {
     <tr><td style="padding:16px 36px 8px 36px">
       <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:500;letter-spacing:-0.01em">Parolni tiklash</h1>
       <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#1a1a1a">
-        ${greeting} ${APP_NAME} hisobingiz uchun parolni tiklash so'rovi olindi. Yangi parol o'rnatish uchun:
+        ${greeting} ${APP_NAME} profilingiz uchun parolni tiklash so'rovi olindi. Yangi parol o'rnatish uchun:
       </p>
     </td></tr>
     ${buttonRow("Yangi parol o'rnatish", opts.url)}
@@ -185,7 +185,7 @@ export function passwordResetEmail(opts: {
         <a href="${opts.url}" style="color:#404040">${opts.url}</a>
       </p>
       <p style="margin:0;font-size:13px;color:#737373;line-height:1.6">
-        Havola 1 soat davomida amal qiladi. Agar siz bu so'rovni jo'natmagan bo'lsangiz, hech narsa qilmang — hisobingiz xavfsiz.
+        Havola 1 soat davomida amal qiladi. Agar siz bu so'rovni jo'natmagan bo'lsangiz, hech narsa qilmang — profilingiz xavfsiz.
       </p>
     </td></tr>
   `);
@@ -207,19 +207,19 @@ export function accountDeletedEmail(opts: {
 		: "Salom!";
 	const html = shell(`
     <tr><td style="padding:16px 36px 24px 36px">
-      <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:500;letter-spacing:-0.01em">Hisobingiz o'chirildi</h1>
+      <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:500;letter-spacing:-0.01em">Profilingiz o'chirildi</h1>
       <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#1a1a1a">
-        ${greeting} ${APP_NAME} hisobingiz so'rov bo'yicha o'chirildi. Endi tizimga kira olmaysiz.
+        ${greeting} ${APP_NAME} profilingiz so'rov bo'yicha o'chirildi. Endi tizimga kira olmaysiz.
       </p>
       <p style="margin:0;font-size:14px;color:#525252;line-height:1.6">
         Agar bu xatoga aylangan bo'lsa yoki yordam kerak bo'lsa, ${appUrl()} sahifasidan biz bilan bog'laning.
       </p>
     </td></tr>
   `);
-	const text = `${greeting}\n\n${APP_NAME} hisobingiz so'rov bo'yicha o'chirildi. Endi tizimga kira olmaysiz.\n\nAgar bu xatoga aylangan bo'lsa, ${appUrl()} sahifasidan biz bilan bog'laning.`;
+	const text = `${greeting}\n\n${APP_NAME} profilingiz so'rov bo'yicha o'chirildi. Endi tizimga kira olmaysiz.\n\nAgar bu xatoga aylangan bo'lsa, ${appUrl()} sahifasidan biz bilan bog'laning.`;
 	return {
 		to: opts.to,
-		subject: `${APP_NAME} — hisobingiz o'chirildi`,
+		subject: `${APP_NAME} — profilingiz o'chirildi`,
 		html,
 		text,
 	};

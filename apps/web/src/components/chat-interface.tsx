@@ -74,6 +74,19 @@ const PROMPT_POOLS: Record<ModelType, string[]> = {
   ],
 };
 
+// Decides whether the composer renders centered (welcome state) or
+// pinned to the bottom (active conversation / loading existing thread).
+// Exported for unit testing — keeps the layout switch coverable
+// without faking thread-selection flows through child components.
+export function composerPosition(
+  selectedThreadId: Id<"threads"> | null,
+  messages: Array<Doc<"messages">> | undefined,
+): "center" | "bottom" {
+  if (messages && messages.length === 0) return "center";
+  if (!selectedThreadId) return "center";
+  return "bottom";
+}
+
 function pickStarterPrompts(): Array<{ prompt: string; subject: ModelType }> {
   const subjects = Object.keys(PROMPT_POOLS) as ModelType[];
   const items = subjects.map((subject) => {
@@ -306,118 +319,130 @@ export function ChatInterface({
             />
           </div>
         </div>
-        {/* Messages */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {!selectedThreadId ? (
-            <EmptyShell
-              kicker="Boshlash"
-              title="Yangi suhbatni boshlang."
-              body="O‘zbek tilida savolingizni yozing — matematika, adabiyot va dasturlash bo‘yicha qadamma-qadam tushuntirib beraman."
-            />
-          ) : !messages ? (
-            <div className="max-w-3xl mx-auto space-y-6 px-4 py-8 md:px-8">
-              <Skeleton className="h-5 w-32 rounded-md" />
-              <Skeleton className="h-20 w-full rounded-md" />
-              <Skeleton className="h-5 w-24 rounded-md" />
-              <Skeleton className="h-32 w-full rounded-md" />
-            </div>
-          ) : messages.length === 0 ? (
-            <StarterPrompts
-              isGenerating={isGenerating}
-              onPick={handleSendMessage}
-              threadId={selectedThreadId}
-            />
-          ) : (
-            <div className="max-w-3xl mx-auto divide-y divide-border/60">
-              {messages.map((message) => (
-                <ChatMessage key={message._id} message={message} />
-              ))}
-              {/* Streaming placeholder bubble is now part of the message
-                  list itself (chat-message.tsx renders typing dots when
-                  content is empty), so no separate spinner is needed
-                  once a placeholder has landed. */}
-              {isGenerating &&
-                messages[messages.length - 1]?.role !== "assistant" && (
-                  <div
-                    className="flex gap-3 py-5 px-4 md:px-8"
-                    aria-label="Yordamchi javob yozmoqda"
-                  >
-                    <div className="size-7 rounded-full bg-foreground text-background grid place-items-center flex-shrink-0">
-                      <span className="block size-1.5 rounded-full bg-background" />
-                    </div>
-                    <div className="flex-1 space-y-2.5 pt-1">
-                      <span className="text-xs font-medium tracking-tight">
-                        Yordamchi
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse" />
-                        <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:120ms]" />
-                        <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:240ms]" />
+        {/* Messages + composer. The composer sits centered with the
+            welcome/starter content when the thread is empty (or no
+            thread is selected) — bottom-pinned input below a vast empty
+            void felt unwelcoming. Once messages exist (or are still
+            loading for an existing thread), the composer drops to the
+            footer and the scroll list takes the space above it. The
+            position decision lives in `composerPosition` so the
+            rendered branch and the unit tests share one source of
+            truth. */}
+        {composerPosition(selectedThreadId, messages) === "center" ? (
+          <CenteredCompose data-composer-position="center">
+            {selectedThreadId ? (
+              <>
+                <Welcome
+                  kicker="Savol bering"
+                  title="Bugun nimani tushunmoqchisiz?"
+                  body="Mavzuni qisqa yozing yoki quyidagilardan birini tanlang — yechimni tushuntirib, asosiy tushunchalarni qadamlab ko‘rsatib beraman."
+                />
+                <ChatComposer
+                  onSend={handleSendMessage}
+                  isLoading={isGenerating}
+                />
+                <StarterList
+                  threadId={selectedThreadId}
+                  isGenerating={isGenerating}
+                  onPick={handleSendMessage}
+                />
+              </>
+            ) : (
+              <>
+                <Welcome
+                  kicker="Boshlash"
+                  title="Yangi suhbatni boshlang."
+                  body="O‘zbek tilida savolingizni yozing — matematika, adabiyot va dasturlash bo‘yicha qadamma-qadam tushuntirib beraman."
+                />
+                <ChatComposer
+                  onSend={handleSendMessage}
+                  isLoading={isGenerating}
+                />
+              </>
+            )}
+          </CenteredCompose>
+        ) : (
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {!messages ? (
+                <div className="max-w-3xl mx-auto space-y-6 px-4 py-8 md:px-8">
+                  <Skeleton className="h-5 w-32 rounded-md" />
+                  <Skeleton className="h-20 w-full rounded-md" />
+                  <Skeleton className="h-5 w-24 rounded-md" />
+                  <Skeleton className="h-32 w-full rounded-md" />
+                </div>
+              ) : (
+                <div className="max-w-3xl mx-auto divide-y divide-border/60">
+                  {messages.map((message) => (
+                    <ChatMessage key={message._id} message={message} />
+                  ))}
+                  {/* Streaming placeholder bubble is now part of the
+                      message list itself (chat-message.tsx renders
+                      typing dots when content is empty), so no separate
+                      spinner is needed once a placeholder has landed. */}
+                  {isGenerating &&
+                    messages[messages.length - 1]?.role !== "assistant" && (
+                      <div
+                        className="flex gap-3 py-5 px-4 md:px-8"
+                        aria-label="Yordamchi javob yozmoqda"
+                      >
+                        <div className="size-7 rounded-full bg-foreground text-background grid place-items-center flex-shrink-0">
+                          <span className="block size-1.5 rounded-full bg-background" />
+                        </div>
+                        <div className="flex-1 space-y-2.5 pt-1">
+                          <span className="text-xs font-medium tracking-tight">
+                            Yordamchi
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse" />
+                            <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:120ms]" />
+                            <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:240ms]" />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-              <div ref={messagesEndRef} />
+                    )}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Composer */}
-        <div className="border-t border-border/70 bg-background px-3 py-3 md:px-6 md:py-4 flex-shrink-0">
-          <div className="max-w-3xl mx-auto">
-            <ChatComposer onSend={handleSendMessage} isLoading={isGenerating} />
-          </div>
-        </div>
+            <div
+              data-composer-position="bottom"
+              className="border-t border-border/70 bg-background px-3 py-3 md:px-6 md:py-4 flex-shrink-0"
+            >
+              <div className="max-w-3xl mx-auto">
+                <ChatComposer
+                  onSend={handleSendMessage}
+                  isLoading={isGenerating}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function StarterPrompts({
-  isGenerating,
-  onPick,
-  threadId,
+// Vertically centered shell that holds the welcome heading + composer
+// (and optional starter prompts) when the conversation is empty. Uses
+// the same scroll container shape as the active state so layout swaps
+// cleanly when the first message lands.
+function CenteredCompose({
+  children,
+  ...rest
 }: {
-  isGenerating: boolean;
-  onPick: (content: string, subject: ModelType) => void;
-  threadId: Id<"threads"> | null;
-}) {
-  // Re-roll on every fresh empty thread so the user does not see the same
-  // three suggestions twice in a row. threadId is the natural key — a new
-  // thread = a new shuffle.
-  const items = useMemo(() => pickStarterPrompts(), [threadId]);
-
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-8 py-12 md:py-16">
-      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-        Savol bering
-      </p>
-      <h2 className="mt-2 text-2xl md:text-3xl font-medium tracking-tight leading-tight">
-        Bugun nimani tushunmoqchisiz?
-      </h2>
-      <p className="mt-3 text-sm text-muted-foreground max-w-[60ch]">
-        Mavzuni qisqa yozing yoki quyidagilardan birini tanlang — yechimni
-        tushuntirib, asosiy tushunchalarni qadamlab ko‘rsatib beraman.
-      </p>
-      <ul className="mt-8 space-y-2">
-        {items.map(({ prompt, subject }) => (
-          <li key={prompt}>
-            <button
-              type="button"
-              onClick={() => onPick(prompt, subject)}
-              disabled={isGenerating}
-              className="group w-full text-left rounded-lg border border-border/70 bg-background hover:bg-muted/40 hover:border-border px-4 py-3 transition-colors disabled:opacity-60"
-            >
-              <span className="text-sm tracking-tight">{prompt}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+    <div className="flex-1 min-h-0 overflow-y-auto" {...rest}>
+      <div className="min-h-full flex items-center justify-center px-4 md:px-8 py-8 md:py-12">
+        <div className="w-full max-w-3xl space-y-6 md:space-y-8">{children}</div>
+      </div>
     </div>
   );
 }
 
-function EmptyShell({
+function Welcome({
   kicker,
   title,
   body,
@@ -427,16 +452,48 @@ function EmptyShell({
   body: string;
 }) {
   return (
-    <div className="flex h-full items-center justify-center px-4 md:px-8">
-      <div className="max-w-md text-left space-y-3">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          {kicker}
-        </p>
-        <h2 className="text-2xl md:text-3xl font-medium tracking-tight leading-tight">
-          {title}
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
-      </div>
+    <div className="space-y-3">
+      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+        {kicker}
+      </p>
+      <h2 className="text-2xl md:text-3xl font-medium tracking-tight leading-tight">
+        {title}
+      </h2>
+      <p className="text-sm text-muted-foreground leading-relaxed max-w-[60ch]">
+        {body}
+      </p>
     </div>
+  );
+}
+
+function StarterList({
+  threadId,
+  isGenerating,
+  onPick,
+}: {
+  threadId: Id<"threads"> | null;
+  isGenerating: boolean;
+  onPick: (content: string, subject: ModelType) => void;
+}) {
+  // Re-roll on every fresh empty thread so the user does not see the
+  // same three suggestions twice in a row. threadId is the natural key
+  // — a new thread = a new shuffle.
+  const items = useMemo(() => pickStarterPrompts(), [threadId]);
+
+  return (
+    <ul className="space-y-2">
+      {items.map(({ prompt, subject }) => (
+        <li key={prompt}>
+          <button
+            type="button"
+            onClick={() => onPick(prompt, subject)}
+            disabled={isGenerating}
+            className="group w-full text-left rounded-lg border border-border/70 bg-background hover:bg-muted/40 hover:border-border px-4 py-3 transition-colors disabled:opacity-60"
+          >
+            <span className="text-sm tracking-tight">{prompt}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
