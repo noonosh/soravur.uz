@@ -12,20 +12,24 @@ import {
 const MAX_CONTEXT_MESSAGES = 20;
 const REQUESTS_PER_MINUTE_LIMIT = 12;
 
-const CHEATING_KEYWORDS = [
-  "javoblar",
-  "javobini ayt",
-  "kalit",
-  "variant",
-  "test javobi",
-  "test javoblari",
-  "shpargalka",
-  "ko'chirish",
-  "kochirish",
-  "copy",
-  "cheat",
-  "answers",
+// Phrases that strongly imply asking for an answer key / cheat sheet.
+// Matched as case-insensitive whole-phrase substrings; the words "copy",
+// "variant", "kalit", and "answers" alone are too generic (they hit
+// programming questions, multiple-choice prep, etc.) so we only match
+// them in clearly cheat-coded contexts.
+const CHEATING_PATTERNS: RegExp[] = [
+  /\bjavoblar(ini|ni)?\s+(ayt|ber|yubor)/i, // "javoblarini ayt", "javoblar ber"
+  /\bjavob\s+kalit/i, // "javob kaliti"
+  /\btest\s+javob(lari)?/i, // "test javobi", "test javoblari"
+  /\bshpargalk/i,
+  /\bko[''ʻ]?chirish/i, // ko'chirish / kochirish
+  /\bcheat\s*sheet\b/i,
+  /\banswer\s*key\b/i,
 ];
+
+function looksLikeCheatingRequest(text: string): boolean {
+  return CHEATING_PATTERNS.some((re) => re.test(text));
+}
 
 export const generateAssistantReply = action({
   args: {
@@ -98,8 +102,7 @@ export const generateAssistantReply = action({
     }
 
     // Refuse helping with cheating / answer keys
-    const userTextLower = userMessage.content.toLowerCase();
-    if (CHEATING_KEYWORDS.some((k) => userTextLower.includes(k))) {
+    if (looksLikeCheatingRequest(userMessage.content)) {
       return await ctx.runMutation(api.messages.appendAssistantMessage, {
         threadId: args.threadId,
         content:
