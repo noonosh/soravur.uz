@@ -85,10 +85,12 @@ jobs:
             response=$(curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
               "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&meta-githubCommitSha=$SHA&limit=1")
             url=$(echo "$response" | jq -r '.deployments[0].url // empty')
+            uid=$(echo "$response" | jq -r '.deployments[0].uid // empty')
             state=$(echo "$response" | jq -r '.deployments[0].readyState // empty')
-            if [ "$state" = "READY" ] && [ -n "$url" ]; then
+            if [ "$state" = "READY" ] && [ -n "$url" ] && [ -n "$uid" ]; then
               echo "url=https://$url" >> "$GITHUB_OUTPUT"
-              echo "Preview ready: https://$url"
+              echo "uid=$uid" >> "$GITHUB_OUTPUT"
+              echo "Preview ready: https://$url ($uid)"
               exit 0
             fi
             if [ "$state" = "ERROR" ] || [ "$state" = "CANCELED" ]; then
@@ -101,12 +103,28 @@ jobs:
           echo "::error::Timed out waiting for Vercel preview after 15 minutes"
           exit 1
 
+      # The Vercel CLI's `alias set` command resolves the target domain
+      # against the *account-level* domains API, which fails when the
+      # domain is attached to a project but not registered as an
+      # account-owned domain (the common case for soravur.uz). Calling
+      # the deployment-level alias endpoint directly bypasses that lookup
+      # — it only needs project/deployment ownership, which the token
+      # already has.
       - name: Alias preview to demo.soravur.uz
         run: |
           set -euo pipefail
-          npx --yes vercel@latest alias set \
-            "${{ steps.wait.outputs.url }}" demo.soravur.uz \
-            --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          response=$(curl -sS -X POST \
+            "https://api.vercel.com/v13/deployments/${{ steps.wait.outputs.uid }}/aliases?teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"alias":"demo.soravur.uz"}')
+          alias=$(echo "$response" | jq -r '.alias // empty')
+          if [ -z "$alias" ]; then
+            echo "::error::Alias creation failed:"
+            echo "$response" | jq .
+            exit 1
+          fi
+          echo "Aliased $alias to deployment ${{ steps.wait.outputs.uid }}"
 
       - name: Comment preview URLs on PR
         uses: actions/github-script@v7
@@ -167,11 +185,22 @@ jobs:
           fi
           response=$(curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
             "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&target=production&state=READY&limit=1")
-          prod_url=$(echo "$response" | jq -r '.deployments[0].url // empty')
-          if [ -z "$prod_url" ]; then
+          prod_uid=$(echo "$response" | jq -r '.deployments[0].uid // empty')
+          if [ -z "$prod_uid" ]; then
             echo "No ready production deployment found — leaving demo alias untouched."
             exit 0
           fi
-          npx --yes vercel@latest alias set \
-            "https://$prod_url" demo.soravur.uz \
-            --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          # Same deployment-level alias API as the preview job. CLI's
+          # account-level lookup fails for project-only domains.
+          alias_response=$(curl -sS -X POST \
+            "https://api.vercel.com/v13/deployments/$prod_uid/aliases?teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"alias":"demo.soravur.uz"}')
+          alias=$(echo "$alias_response" | jq -r '.alias // empty')
+          if [ -z "$alias" ]; then
+            echo "::warning::Cleanup alias creation failed:"
+            echo "$alias_response" | jq .
+            exit 0
+          fi
+          echo "Reset demo.soravur.uz to production deployment $prod_uid"
