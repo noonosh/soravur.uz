@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash build.sh",
+  "buildCommand": "cd ../.. && bun run build",
   "framework": "nextjs",
   "installCommand": "bun install"
 }
