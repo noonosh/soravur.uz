@@ -235,6 +235,7 @@ export function ChatInterface({
           body: JSON.stringify({
             content,
             model: getModelByType(model),
+            subject: model,
           }),
         }
       );
