@@ -181,12 +181,17 @@ export const generateAssistantReply = action({
       }
     );
 
+    // Hoisted so the catch block can drain in-flight patches before
+    // overwriting the placeholder with an error message — otherwise a
+    // patch queued just before a throw can land *after* the error
+    // patch and clobber it with stale partial content.
+    let pendingFlush: Promise<unknown> = Promise.resolve();
+
     try {
       let assistantContent = "";
       let upstreamId: string | undefined;
       let usage: { prompt: number; completion: number; total: number } | undefined;
       let lastPatchAt = 0;
-      let pendingFlush: Promise<unknown> = Promise.resolve();
 
       const PATCH_MIN_INTERVAL_MS = 80;
       const PATCH_MIN_DELTA_CHARS = 24;
@@ -349,6 +354,10 @@ export const generateAssistantReply = action({
         userMessage =
           "Model javob bermadi. Iltimos, savolingizni soddaroq qilib qayta yuboring.";
       }
+
+      // Drain any in-flight stream patches first, otherwise one of
+      // them can overwrite the error message with stale partial text.
+      await pendingFlush.catch(() => undefined);
 
       // Overwrite the streaming placeholder with the user-facing
       // error so the spinner clears cleanly on the client.
