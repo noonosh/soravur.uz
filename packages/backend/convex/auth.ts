@@ -25,12 +25,16 @@ function createAuth(
 			enabled: true,
 			requireEmailVerification: false,
 		},
-		// Throttle abusive auth traffic at the framework level. Storage
-		// uses better-auth's default (in-memory per Convex container,
-		// good enough as a first line of defence). Per-route overrides
-		// catch the high-cost endpoints: signup and password sign-in.
+		// Throttle abusive auth traffic at the framework level.
+		// IMPORTANT: storage must be "database" — the better-auth
+		// default is in-memory, which is a no-op on Convex because
+		// requests are served by transient containers, so per-process
+		// counters never accumulate. Routing the counter through the
+		// adapter persists it in Convex and makes the limits actually
+		// enforced. Per-route overrides catch the high-cost endpoints.
 		rateLimit: {
 			enabled: true,
+			storage: "database",
 			window: 60,
 			max: 30,
 			customRules: {
