@@ -1,5 +1,7 @@
 # CI/CD setup
 
+> Pipeline smoke-tested end-to-end on the `ci/pipeline-smoke-test` PR.
+
 End-to-end pipeline:
 
 ```
