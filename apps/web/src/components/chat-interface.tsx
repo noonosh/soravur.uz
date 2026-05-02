@@ -14,7 +14,7 @@ import {
 import { Button } from "./ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { MessageCircle, Sparkles, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import type { Doc, Id } from "@soravur/backend/convex/_generated/dataModel";
 
 interface ChatInterfaceProps {
@@ -34,6 +34,12 @@ async function getConvexAuthToken(): Promise<string> {
   }
   return data.token;
 }
+
+const STARTER_PROMPTS = [
+  "Kvadrat tenglamani qanday yechish mumkin?",
+  "Cho‘lpon she’riyatining asosiy mavzulari nimalardan iborat?",
+  "JavaScript’da Promise nima va qanday ishlaydi?",
+];
 
 export function ChatInterface({
   userId,
@@ -185,36 +191,37 @@ export function ChatInterface({
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-foreground/40 backdrop-blur-[2px] z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Thread list sidebar */}
-      <div
+      <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-50
-          w-80 border-r bg-background flex flex-col flex-shrink-0
-          transform transition-transform duration-300 ease-in-out
+          w-72 border-r border-border/70 bg-background flex flex-col flex-shrink-0
+          transform transition-transform duration-200 ease-out
           ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }
         `}
       >
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg">Suhbatlar</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+        <div className="px-4 h-14 border-b border-border/70 flex items-center justify-between flex-shrink-0">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Suhbatlar
+          </p>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden h-8 w-8"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Yopish"
+          >
+            <X className="h-4 w-4" strokeWidth={1.5} />
+          </Button>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3">
           <ChatThreadList
             userId={userId}
             selectedThreadId={selectedThreadId || undefined}
@@ -222,18 +229,20 @@ export function ChatInterface({
             onNewThread={handleNewThread}
           />
         </div>
-      </div>
+      </aside>
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col bg-background min-w-0">
         {/* Mobile header with hamburger and model selector */}
-        <div className="md:hidden border-b bg-background px-4 py-3 flex items-center gap-3">
+        <div className="md:hidden border-b border-border/70 bg-background px-3 h-14 flex items-center gap-2 flex-shrink-0">
           <Button
             variant="ghost"
             size="icon"
+            className="h-9 w-9"
             onClick={() => setSidebarOpen(true)}
+            aria-label="Suhbatlar"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4" strokeWidth={1.5} />
           </Button>
           <div className="flex-1">
             <ModelSelector
@@ -245,78 +254,111 @@ export function ChatInterface({
         {/* Messages */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           {!selectedThreadId ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-4 md:p-8">
-              <div className="rounded-full bg-primary/10 p-4 md:p-6 mb-3 md:mb-4">
-                <MessageCircle className="h-10 w-10 md:h-12 md:w-12 text-primary" />
-              </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2">
-                Yangi suhbatni boshlang
-              </h3>
-              <p className="text-sm md:text-base text-muted-foreground max-w-md px-4">
-                O'zbek tilida savolingizni yozing va men sizga imtihonlarga
-                tayyorgarlik ko'rishda yordam beraman
-              </p>
-            </div>
+            <EmptyShell
+              kicker="Boshlash"
+              title="Yangi suhbatni boshlang."
+              body="O‘zbek tilida savolingizni yozing — matematika, adabiyot va dasturlash bo‘yicha qadamma-qadam tushuntirib beraman."
+            />
           ) : !messages ? (
-            <div className="space-y-4 p-4 md:p-8">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
+            <div className="max-w-3xl mx-auto space-y-6 px-4 py-8 md:px-8">
+              <Skeleton className="h-5 w-32 rounded-md" />
+              <Skeleton className="h-20 w-full rounded-md" />
+              <Skeleton className="h-5 w-24 rounded-md" />
+              <Skeleton className="h-32 w-full rounded-md" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-4 md:p-8">
-              <div className="rounded-full bg-gradient-to-br from-violet-500/20 to-purple-600/20 p-4 md:p-6 mb-3 md:mb-4">
-                <Sparkles className="h-10 w-10 md:h-12 md:w-12 text-primary" />
-              </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2">
-                Savolingizni yozing
-              </h3>
-              <p className="text-sm md:text-base text-muted-foreground max-w-md px-4">
-                Men sizga matematika, fizika, kimyo va boshqa fanlardan yordam
-                bera olaman. Qadamlab tushuntiraman.
+            <div className="max-w-3xl mx-auto px-4 md:px-8 py-12 md:py-16">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Savol bering
               </p>
+              <h2 className="mt-2 text-2xl md:text-3xl font-medium tracking-tight leading-tight">
+                Bugun nimani tushunmoqchisiz?
+              </h2>
+              <p className="mt-3 text-sm text-muted-foreground max-w-[60ch]">
+                Mavzuni qisqa yozing yoki quyidagilardan birini tanlang —
+                yechimni tushuntirib, asosiy tushunchalarni qadamlab ko‘rsatib
+                beraman.
+              </p>
+              <ul className="mt-8 space-y-2">
+                {STARTER_PROMPTS.map((prompt) => (
+                  <li key={prompt}>
+                    <button
+                      type="button"
+                      onClick={() => handleSendMessage(prompt)}
+                      disabled={isGenerating}
+                      className="group w-full text-left rounded-lg border border-border/70 bg-background hover:bg-muted/40 hover:border-border px-4 py-3 transition-colors disabled:opacity-60"
+                    >
+                      <span className="text-sm tracking-tight">{prompt}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="max-w-3xl mx-auto divide-y divide-border/60">
               {messages.map((message) => (
                 <ChatMessage key={message._id} message={message} />
               ))}
-              {/* Once the streaming assistant placeholder lands in the
-                  thread (last message is an assistant doc), the bubble
-                  itself indicates progress — drop the redundant spinner. */}
+              {/* Streaming placeholder bubble is now part of the message
+                  list itself (chat-message.tsx renders typing dots when
+                  content is empty), so no separate spinner is needed
+                  once a placeholder has landed. */}
               {isGenerating &&
                 messages[messages.length - 1]?.role !== "assistant" && (
-                <div className="flex gap-2 md:gap-3 py-4 md:py-6 px-3 md:px-4 bg-muted/30 animate-pulse">
-                  <div className="flex-shrink-0 pt-1">
-                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                      <div className="h-3.5 w-3.5 md:h-4 md:w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div
+                    className="flex gap-3 py-5 px-4 md:px-8"
+                    aria-label="Yordamchi javob yozmoqda"
+                  >
+                    <div className="size-7 rounded-full bg-foreground text-background grid place-items-center flex-shrink-0">
+                      <span className="block size-1.5 rounded-full bg-background" />
                     </div>
-                  </div>
-                  <div className="flex-1 space-y-2 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">Yordamchi</span>
-                      <span className="text-xs text-muted-foreground">
-                        javob yozmoqda...
+                    <div className="flex-1 space-y-2.5 pt-1">
+                      <span className="text-xs font-medium tracking-tight">
+                        Yordamchi
                       </span>
-                    </div>
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-[80%]" />
-                      <Skeleton className="h-4 w-[60%]" />
+                      <div className="flex items-center gap-1.5">
+                        <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse" />
+                        <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:120ms]" />
+                        <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:240ms]" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
               <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
         {/* Composer */}
-        <div className="border-t bg-muted/5 p-3 md:p-4">
+        <div className="border-t border-border/70 bg-background px-3 py-3 md:px-6 md:py-4 flex-shrink-0">
           <div className="max-w-3xl mx-auto">
             <ChatComposer onSend={handleSendMessage} isLoading={isGenerating} />
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyShell({
+  kicker,
+  title,
+  body,
+}: {
+  kicker: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="flex h-full items-center justify-center px-4 md:px-8">
+      <div className="max-w-md text-left space-y-3">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          {kicker}
+        </p>
+        <h2 className="text-2xl md:text-3xl font-medium tracking-tight leading-tight">
+          {title}
+        </h2>
+        <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
       </div>
     </div>
   );
