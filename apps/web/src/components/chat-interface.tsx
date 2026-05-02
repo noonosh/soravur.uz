@@ -35,11 +35,59 @@ async function getConvexAuthToken(): Promise<string> {
   return data.token;
 }
 
-const STARTER_PROMPTS = [
-  "Kvadrat tenglamani qanday yechish mumkin?",
-  "Cho‘lpon she’riyatining asosiy mavzulari nimalardan iborat?",
-  "JavaScript’da Promise nima va qanday ishlaydi?",
-];
+// Three subject pools. The empty-state suggester picks one prompt from
+// each pool and shuffles their display order, so the user always sees
+// variety AND every subject is represented. Each suggestion carries
+// its own subject tag so clicking auto-switches the model — picking a
+// literature prompt while the maths model is selected would otherwise
+// route the question to the wrong specialist.
+const PROMPT_POOLS: Record<ModelType, string[]> = {
+  maths: [
+    "Kvadrat tenglamani qanday yechish mumkin?",
+    "Trigonometriyada sinus va kosinus orasidagi farq nimada?",
+    "Logarifmlarning asosiy xossalarini tushuntiring.",
+    "Hosila va integralning ma’nosi nimada?",
+    "Matritsalar nima va qayerda ishlatiladi?",
+    "Ehtimollar nazariyasining asosiy tushunchalari qanday?",
+    "Geometriyada Pifagor teoremasi qanday isbotlanadi?",
+    "Progressiyalarning umumiy formulalarini ko‘rsating.",
+  ],
+  literature: [
+    "Cho‘lpon she’riyatining asosiy mavzulari nimalardan iborat?",
+    "Alisher Navoiy ijodida insonparvarlik g‘oyasi qanday namoyon bo‘lgan?",
+    "Abdulla Qodiriyning “O‘tkan kunlar” romani nima haqida?",
+    "Zulfiya she’rlarining o‘ziga xos jihatlari qanday?",
+    "Hamid Olimjon ijodida vatan mavzusi qanday yoritilgan?",
+    "G‘afur G‘ulom ijodining badiiy xususiyatlari qanday?",
+    "Erkin Vohidov she’riyatida qaysi mavzular yetakchi?",
+    "Oybekning “Qutlug‘ qon” romani qaysi davrni aks ettiradi?",
+  ],
+  programming: [
+    "JavaScript’da Promise nima va qanday ishlaydi?",
+    "React’da useState va useEffect orasidagi farq nimada?",
+    "Big O notatsiyasi nima va nega muhim?",
+    "REST API va GraphQL orasidagi farqlar qaysilar?",
+    "TypeScript’ning JavaScript’dan afzalligi nimada?",
+    "Git’da rebase va merge orasidagi farq nimada?",
+    "SQL’da JOIN turlari qanday ishlaydi?",
+    "Rekursiya nima va qachon ishlatiladi?",
+  ],
+};
+
+function pickStarterPrompts(): Array<{ prompt: string; subject: ModelType }> {
+  const subjects = Object.keys(PROMPT_POOLS) as ModelType[];
+  const items = subjects.map((subject) => {
+    const pool = PROMPT_POOLS[subject];
+    const prompt = pool[Math.floor(Math.random() * pool.length)];
+    return { prompt, subject };
+  });
+  // Fisher–Yates shuffle so subject order is also randomized.
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+}
 
 export function ChatInterface({
   userId,
@@ -107,7 +155,19 @@ export function ChatInterface({
     setSidebarOpen(false); // Close sidebar on mobile
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (
+    content: string,
+    subjectOverride?: ModelType
+  ) => {
+    // If a starter prompt was clicked, switch the model BEFORE sending so
+    // the dropdown reflects reality on the next render. The send call
+    // itself takes the override directly because the parent's selectedModel
+    // prop is still the previous value within this closure.
+    if (subjectOverride && subjectOverride !== selectedModel) {
+      onModelChange(subjectOverride);
+    }
+    const modelForCall = subjectOverride ?? selectedModel;
+
     if (!selectedThreadId) {
       // Create new thread if none selected
       try {
@@ -130,19 +190,20 @@ export function ChatInterface({
         const data = (await res.json()) as { threadId: Id<"threads"> };
         const threadId = data.threadId;
         setSelectedThreadId(threadId);
-        await sendMessageToThread(threadId, content);
+        await sendMessageToThread(threadId, content, modelForCall);
       } catch (error) {
         toast.error("Xatolik yuz berdi");
         console.error(error);
       }
     } else {
-      await sendMessageToThread(selectedThreadId, content);
+      await sendMessageToThread(selectedThreadId, content, modelForCall);
     }
   };
 
   const sendMessageToThread = async (
     threadId: Id<"threads">,
-    content: string
+    content: string,
+    model: ModelType
   ) => {
     setIsGenerating(true);
     try {
@@ -160,7 +221,7 @@ export function ChatInterface({
           },
           body: JSON.stringify({
             content,
-            model: getModelByType(selectedModel),
+            model: getModelByType(model),
           }),
         }
       );
@@ -261,33 +322,11 @@ export function ChatInterface({
               <Skeleton className="h-32 w-full rounded-md" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="max-w-3xl mx-auto px-4 md:px-8 py-12 md:py-16">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                Savol bering
-              </p>
-              <h2 className="mt-2 text-2xl md:text-3xl font-medium tracking-tight leading-tight">
-                Bugun nimani tushunmoqchisiz?
-              </h2>
-              <p className="mt-3 text-sm text-muted-foreground max-w-[60ch]">
-                Mavzuni qisqa yozing yoki quyidagilardan birini tanlang —
-                yechimni tushuntirib, asosiy tushunchalarni qadamlab ko‘rsatib
-                beraman.
-              </p>
-              <ul className="mt-8 space-y-2">
-                {STARTER_PROMPTS.map((prompt) => (
-                  <li key={prompt}>
-                    <button
-                      type="button"
-                      onClick={() => handleSendMessage(prompt)}
-                      disabled={isGenerating}
-                      className="group w-full text-left rounded-lg border border-border/70 bg-background hover:bg-muted/40 hover:border-border px-4 py-3 transition-colors disabled:opacity-60"
-                    >
-                      <span className="text-sm tracking-tight">{prompt}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <StarterPrompts
+              isGenerating={isGenerating}
+              onPick={handleSendMessage}
+              threadId={selectedThreadId}
+            />
           ) : (
             <div className="max-w-3xl mx-auto divide-y divide-border/60">
               {messages.map((message) => (
@@ -330,6 +369,50 @@ export function ChatInterface({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StarterPrompts({
+  isGenerating,
+  onPick,
+  threadId,
+}: {
+  isGenerating: boolean;
+  onPick: (content: string, subject: ModelType) => void;
+  threadId: Id<"threads"> | null;
+}) {
+  // Re-roll on every fresh empty thread so the user does not see the same
+  // three suggestions twice in a row. threadId is the natural key — a new
+  // thread = a new shuffle.
+  const items = useMemo(() => pickStarterPrompts(), [threadId]);
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 md:px-8 py-12 md:py-16">
+      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+        Savol bering
+      </p>
+      <h2 className="mt-2 text-2xl md:text-3xl font-medium tracking-tight leading-tight">
+        Bugun nimani tushunmoqchisiz?
+      </h2>
+      <p className="mt-3 text-sm text-muted-foreground max-w-[60ch]">
+        Mavzuni qisqa yozing yoki quyidagilardan birini tanlang — yechimni
+        tushuntirib, asosiy tushunchalarni qadamlab ko‘rsatib beraman.
+      </p>
+      <ul className="mt-8 space-y-2">
+        {items.map(({ prompt, subject }) => (
+          <li key={prompt}>
+            <button
+              type="button"
+              onClick={() => onPick(prompt, subject)}
+              disabled={isGenerating}
+              className="group w-full text-left rounded-lg border border-border/70 bg-background hover:bg-muted/40 hover:border-border px-4 py-3 transition-colors disabled:opacity-60"
+            >
+              <span className="text-sm tracking-tight">{prompt}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
