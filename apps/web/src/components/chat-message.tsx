@@ -14,9 +14,6 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
-  const modelLabel = !isUser
-    ? message.model?.split("/")[1]?.split(":")[0] ?? "Soravur"
-    : null;
 
   return (
     <article
@@ -51,11 +48,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <span className="text-xs font-medium tracking-tight text-foreground">
             {isUser ? "Siz" : "Yordamchi"}
           </span>
-          {modelLabel && (
-            <span className="hidden sm:inline text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-mono">
-              {modelLabel}
-            </span>
-          )}
         </div>
 
         {message.content.length === 0 && !isUser ? (
