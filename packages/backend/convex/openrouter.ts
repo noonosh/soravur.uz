@@ -62,7 +62,7 @@ export class OpenRouterClient {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
           Accept: "text/event-stream",
-          "HTTP-Referer": process.env.SITE_URL || "https://soravur.com",
+          "HTTP-Referer": process.env.SITE_URL || "https://soravur.uz",
           "X-Title": "Soravur Exam Helper",
         },
         body: JSON.stringify({
@@ -163,7 +163,7 @@ export class OpenRouterClient {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": process.env.SITE_URL || "https://soravur.com",
+          "HTTP-Referer": process.env.SITE_URL || "https://soravur.uz",
           "X-Title": "Soravur Exam Helper",
         },
         body: JSON.stringify(request),

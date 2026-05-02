@@ -98,7 +98,7 @@ export function getEmailSender(): EmailSender {
 const APP_NAME = "Soravur";
 
 function appUrl(): string {
-	return (process.env.APP_URL || "https://soravur.com").replace(/\/$/, "");
+	return (process.env.APP_URL || "https://soravur.uz").replace(/\/$/, "");
 }
 
 function shell(bodyHtml: string): string {
