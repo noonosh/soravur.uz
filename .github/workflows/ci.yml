@@ -4,18 +4,25 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches: [main]
 
 # Cancel in-progress runs for the same ref so PR pushes don't pile up.
+# github.ref is `refs/pull/N/merge` for PRs, so two open PRs run in parallel.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
-  check:
-    name: typecheck
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    if: github.event.action != 'closed'
     steps:
       - uses: actions/checkout@v4
 
@@ -35,3 +42,136 @@ jobs:
 
       - name: Test
         run: bun run test
+
+      # Smoke build — catches Next-compiler-only failures (typedRoutes,
+      # MDX, client-only imports) that pass tsc but break next build.
+      # Vercel runs the real build with Convex creds; this is a fast
+      # canary that runs before the deploy starts.
+      - name: Build (smoke)
+        run: bun run build
+        env:
+          NEXT_PUBLIC_CONVEX_URL: https://placeholder.convex.cloud
+
+  preview:
+    name: Alias preview to demo.soravur.uz
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: test
+    # Only on PRs from the same repo — secrets aren't exposed to fork PRs
+    # by GitHub, so the alias step would silently fail. Skip cleanly.
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.action != 'closed'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      # Vercel's GitHub integration starts the preview build as soon as
+      # the PR push lands. We poll the Vercel API for a deployment whose
+      # githubCommitSha metadata matches the PR head, then wait for it
+      # to reach READY before aliasing — this avoids racing the build.
+      - name: Wait for Vercel preview to be ready
+        id: wait
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.pull_request.head.sha }}"
+          if [ -z "${VERCEL_TOKEN:-}" ] || [ -z "${VERCEL_PROJECT_ID:-}" ]; then
+            echo "::error::VERCEL_TOKEN and VERCEL_PROJECT_ID secrets are required"
+            exit 1
+          fi
+          for i in $(seq 1 90); do
+            response=$(curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&meta-githubCommitSha=$SHA&limit=1")
+            url=$(echo "$response" | jq -r '.deployments[0].url // empty')
+            state=$(echo "$response" | jq -r '.deployments[0].readyState // empty')
+            if [ "$state" = "READY" ] && [ -n "$url" ]; then
+              echo "url=https://$url" >> "$GITHUB_OUTPUT"
+              echo "Preview ready: https://$url"
+              exit 0
+            fi
+            if [ "$state" = "ERROR" ] || [ "$state" = "CANCELED" ]; then
+              echo "::error::Vercel preview build failed (state=$state)"
+              exit 1
+            fi
+            echo "Waiting for Vercel preview (attempt $i/90, state=${state:-pending})..."
+            sleep 10
+          done
+          echo "::error::Timed out waiting for Vercel preview after 15 minutes"
+          exit 1
+
+      - name: Alias preview to demo.soravur.uz
+        run: |
+          set -euo pipefail
+          npx --yes vercel@latest alias set \
+            "${{ steps.wait.outputs.url }}" demo.soravur.uz \
+            --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+
+      - name: Comment preview URLs on PR
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.wait.outputs.url }}
+        with:
+          script: |
+            const body = [
+              '### Preview ready',
+              '',
+              `- **Demo (latest PR push):** https://demo.soravur.uz`,
+              `- **This PR's stable URL:** ${process.env.PREVIEW_URL}`,
+              '',
+              '`demo.soravur.uz` re-aliases to whichever PR pushed last; the per-PR URL above stays stable for this branch.',
+              '',
+              'Backend points to a Convex preview deployment with isolated data — manual test freely without touching prod.',
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body && c.body.startsWith('### Preview ready')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  cleanup:
+    name: Reset demo on PR close
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Re-alias demo.soravur.uz back to latest production
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "VERCEL_TOKEN not set — skipping cleanup"
+            exit 0
+          fi
+          response=$(curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&target=production&state=READY&limit=1")
+          prod_url=$(echo "$response" | jq -r '.deployments[0].url // empty')
+          if [ -z "$prod_url" ]; then
+            echo "No ready production deployment found — leaving demo alias untouched."
+            exit 0
+          fi
+          npx --yes vercel@latest alias set \
+            "https://$prod_url" demo.soravur.uz \
+            --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
