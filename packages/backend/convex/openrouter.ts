@@ -32,6 +32,11 @@ export interface ChatCompletionResponse {
   };
 }
 
+export type StreamEvent =
+  | { type: "delta"; text: string; id?: string }
+  | { type: "usage"; usage: NonNullable<ChatCompletionResponse["usage"]>; id?: string }
+  | { type: "done"; finishReason?: string; id?: string };
+
 export class OpenRouterClient {
   private apiKey: string;
 
@@ -40,6 +45,110 @@ export class OpenRouterClient {
       throw new Error("OpenRouter API key is required");
     }
     this.apiKey = apiKey;
+  }
+
+  async *createChatCompletionStream(
+    request: ChatCompletionRequest
+  ): AsyncGenerator<StreamEvent, void, void> {
+    const controller = new AbortController();
+    // Longer timeout for streamed responses — OpenRouter holds the
+    // connection open while the model generates.
+    const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+    try {
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+          "HTTP-Referer": process.env.SITE_URL || "https://soravur.com",
+          "X-Title": "Soravur Exam Helper",
+        },
+        body: JSON.stringify({
+          ...request,
+          stream: true,
+          // Ask OpenRouter to include a final usage event in the stream
+          // so we can log token totals without a second request.
+          stream_options: { include_usage: true },
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+      }
+      if (!response.body) {
+        throw new Error("OpenRouter stream missing response body");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE events are separated by blank lines. Hold the trailing
+        // partial event in `buffer` and process complete ones.
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+
+        for (const raw of events) {
+          // An event can have multiple lines; we only care about the
+          // first `data:` line. Comment lines (": ...") are heartbeats.
+          const dataLine = raw
+            .split("\n")
+            .find((l) => l.startsWith("data:"));
+          if (!dataLine) continue;
+          const payload = dataLine.replace(/^data:\s*/, "").trim();
+          if (!payload) continue;
+          if (payload === "[DONE]") {
+            yield { type: "done" };
+            return;
+          }
+          let json: {
+            id?: string;
+            choices?: Array<{
+              delta?: { content?: string };
+              finish_reason?: string | null;
+            }>;
+            usage?: {
+              prompt_tokens: number;
+              completion_tokens: number;
+              total_tokens: number;
+            };
+          };
+          try {
+            json = JSON.parse(payload);
+          } catch {
+            continue;
+          }
+          const delta = json.choices?.[0]?.delta?.content;
+          if (typeof delta === "string" && delta.length > 0) {
+            yield { type: "delta", text: delta, id: json.id };
+          }
+          if (json.usage) {
+            yield { type: "usage", usage: json.usage, id: json.id };
+          }
+          const fr = json.choices?.[0]?.finish_reason;
+          if (fr) {
+            yield { type: "done", finishReason: fr, id: json.id };
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Request timeout - model took too long to respond");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   async createChatCompletion(

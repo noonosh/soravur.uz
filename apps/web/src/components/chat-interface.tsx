@@ -281,7 +281,11 @@ export function ChatInterface({
               {messages.map((message) => (
                 <ChatMessage key={message._id} message={message} />
               ))}
-              {isGenerating && (
+              {/* Once the streaming assistant placeholder lands in the
+                  thread (last message is an assistant doc), the bubble
+                  itself indicates progress — drop the redundant spinner. */}
+              {isGenerating &&
+                messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="flex gap-2 md:gap-3 py-4 md:py-6 px-3 md:px-4 bg-muted/30 animate-pulse">
                   <div className="flex-shrink-0 pt-1">
                     <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">

@@ -167,33 +167,89 @@ export const generateAssistantReply = action({
         })),
     ];
 
-    // Generate assistant reply
+    // Generate assistant reply (streaming).
     const client = new OpenRouterClient(apiKey);
 
+    // Insert an empty assistant message up front — the frontend's
+    // reactive useQuery on listMessages will render every patch we
+    // make to it as the stream comes in.
+    const messageId: Id<"messages"> = await ctx.runMutation(
+      api.messages.startAssistantMessage,
+      {
+        threadId: args.threadId,
+        model: selectedModel,
+      }
+    );
+
     try {
-      const completion = await client.createChatCompletion({
+      let assistantContent = "";
+      let upstreamId: string | undefined;
+      let usage: { prompt: number; completion: number; total: number } | undefined;
+      let lastPatchAt = 0;
+      let pendingFlush: Promise<unknown> = Promise.resolve();
+
+      const PATCH_MIN_INTERVAL_MS = 80;
+      const PATCH_MIN_DELTA_CHARS = 24;
+      let unflushedSinceLastPatch = 0;
+
+      const flush = (final: boolean) => {
+        const snapshot = assistantContent;
+        // Serialize patches so they can never arrive out of order even
+        // though we don't await each one.
+        pendingFlush = pendingFlush
+          .catch(() => undefined)
+          .then(() =>
+            ctx.runMutation(api.messages.patchAssistantContent, {
+              messageId,
+              content: snapshot,
+              tokenUsage: final ? usage : undefined,
+            })
+          );
+        lastPatchAt = Date.now();
+        unflushedSinceLastPatch = 0;
+      };
+
+      const stream = client.createChatCompletionStream({
         model: selectedModel,
         messages: conversationMessages,
         max_tokens: 3000,
         temperature: 0.7,
       });
 
-      const choice = completion.choices[0];
-      const assistantContent = choice?.message?.content || "";
+      for await (const ev of stream) {
+        if (ev.type === "delta") {
+          assistantContent += ev.text;
+          unflushedSinceLastPatch += ev.text.length;
+          if (ev.id) upstreamId = ev.id;
+          const now = Date.now();
+          if (
+            now - lastPatchAt >= PATCH_MIN_INTERVAL_MS &&
+            unflushedSinceLastPatch >= PATCH_MIN_DELTA_CHARS
+          ) {
+            flush(false);
+          }
+        } else if (ev.type === "usage") {
+          usage = {
+            prompt: ev.usage.prompt_tokens,
+            completion: ev.usage.completion_tokens,
+            total: ev.usage.total_tokens,
+          };
+          if (ev.id) upstreamId = ev.id;
+        }
+      }
 
-      if (!assistantContent) {
+      // Final flush + await everything in flight.
+      flush(true);
+      await pendingFlush;
+
+      if (assistantContent.length === 0) {
         throw new Error("Empty response from AI model");
       }
 
-      // Check if response was truncated
-      if (choice?.finish_reason === "length") {
-        console.warn("Response was truncated due to max_tokens limit");
-        // Continue anyway - we'll save the partial response
-      }
-
-      // Double-check the response is in Uzbek
+      // Output language guard. If the streamed response wasn't in
+      // Uzbek, fall back to a non-streaming retry with a stronger
+      // instruction and overwrite the message in place.
       if (!isLikelyUzbek(assistantContent)) {
-        // Retry with stronger instruction
         const retryMessages = [
           ...conversationMessages,
           {
@@ -210,58 +266,38 @@ export const generateAssistantReply = action({
           temperature: 0.5,
         });
 
-        const retryChoice = retryCompletion.choices[0];
-        const retryContent = retryChoice?.message?.content || "";
-
+        const retryContent = retryCompletion.choices[0]?.message?.content || "";
         if (!retryContent) {
           throw new Error("Empty response from AI model on retry");
         }
 
-        // Check if retry response was truncated
-        if (retryChoice?.finish_reason === "length") {
-          console.warn("Retry response was truncated due to max_tokens limit");
-        }
+        const retryUsage = retryCompletion.usage
+          ? {
+              prompt: retryCompletion.usage.prompt_tokens,
+              completion: retryCompletion.usage.completion_tokens,
+              total: retryCompletion.usage.total_tokens,
+            }
+          : usage;
 
-        // Save the retry response
-        return await ctx.runMutation(api.messages.appendAssistantMessage, {
-          threadId: args.threadId,
+        await ctx.runMutation(api.messages.patchAssistantContent, {
+          messageId,
           content: retryContent,
-          model: selectedModel,
-          tokenUsage: retryCompletion.usage
-            ? {
-                prompt: retryCompletion.usage.prompt_tokens,
-                completion: retryCompletion.usage.completion_tokens,
-                total: retryCompletion.usage.total_tokens,
-              }
-            : undefined,
+          tokenUsage: retryUsage,
         });
+        assistantContent = retryContent;
+        usage = retryUsage;
+        if (retryCompletion.id) upstreamId = retryCompletion.id;
       }
 
-      // Save the assistant response
-      const messageId: Id<"messages"> = await ctx.runMutation(
-        api.messages.appendAssistantMessage,
-        {
-          threadId: args.threadId,
-          content: assistantContent,
-          model: selectedModel,
-          tokenUsage: completion.usage
-            ? {
-                prompt: completion.usage.prompt_tokens,
-                completion: completion.usage.completion_tokens,
-                total: completion.usage.total_tokens,
-              }
-            : undefined,
-        }
-      );
-
-      // Log usage event
-      if (completion.usage) {
+      // Log usage event (best effort — fall back to our requestId
+      // when OpenRouter didn't echo one).
+      if (usage) {
         await ctx.runMutation(api.usageEvents.logUsage, {
           userId: thread.userId,
           threadId: args.threadId,
-          requestId: completion.id,
+          requestId: upstreamId || requestId,
           model: selectedModel,
-          tokensTotal: completion.usage.total_tokens,
+          tokensTotal: usage.total,
         });
       }
 
@@ -314,12 +350,13 @@ export const generateAssistantReply = action({
           "Model javob bermadi. Iltimos, savolingizni soddaroq qilib qayta yuboring.";
       }
 
-      // Save error message
-      return await ctx.runMutation(api.messages.appendAssistantMessage, {
-        threadId: args.threadId,
+      // Overwrite the streaming placeholder with the user-facing
+      // error so the spinner clears cleanly on the client.
+      await ctx.runMutation(api.messages.patchAssistantContent, {
+        messageId,
         content: userMessage,
-        model: selectedModel,
       });
+      return messageId;
     }
   },
 });
