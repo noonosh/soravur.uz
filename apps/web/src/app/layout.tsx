@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../index.css";
-import "katex/dist/katex.min.css";
+// katex CSS lives with chat-message.tsx so it ships with the lazy chat
+// chunk — pulling it into the root layout used to inflate first paint
+// for unauthenticated users who never render a math message.
 import Providers from "@/components/providers";
 
 const geistSans = Geist({

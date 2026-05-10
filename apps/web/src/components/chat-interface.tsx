@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@soravur/backend/convex/_generated/api";
 import { ChatThreadList } from "./chat-thread-list";
 import { ChatMessage } from "./chat-message";
@@ -21,18 +21,6 @@ interface ChatInterfaceProps {
   userId: Id<"users">;
   selectedModel: ModelType;
   onModelChange: (model: ModelType) => void;
-}
-
-async function getConvexAuthToken(): Promise<string> {
-  const res = await fetch("/api/convex-token", { method: "GET" });
-  if (!res.ok) {
-    throw new Error("Auth token olishda xatolik yuz berdi");
-  }
-  const data = (await res.json()) as { token: string | null };
-  if (!data.token) {
-    throw new Error("Avtorizatsiya talab qilinadi");
-  }
-  return data.token;
 }
 
 // Three subject pools. The empty-state suggester picks one prompt from
@@ -120,14 +108,13 @@ export function ChatInterface({
     selectedThreadId ? { threadId: selectedThreadId } : "skip"
   ) as Array<Doc<"messages">> | undefined;
 
-  const convexSiteUrl = useMemo(() => {
-    const cloudUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!cloudUrl) return "";
-    if (cloudUrl.includes(".convex.cloud")) {
-      return cloudUrl.replace(".convex.cloud", ".convex.site");
-    }
-    return cloudUrl;
-  }, []);
+  // Direct Convex calls over the existing WebSocket. Replaces the prior
+  // path which: (1) fetched a bearer token from /api/convex-token and
+  // (2) re-issued the call to the Convex HTTP routes — two round trips
+  // for what's a single mutation. Killed the 2-3s "new chat" delay.
+  const createThread = useMutation(api.threads.createThread);
+  const appendUserMessage = useMutation(api.messages.appendUserMessage);
+  const generateAssistantReply = useAction(api.chat.generateAssistantReply);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -135,27 +122,13 @@ export function ChatInterface({
   }, [messages]);
 
   const handleNewThread = async () => {
+    // Snap the UI to the empty/welcome state immediately so the screen
+    // change is instant; the mutation roundtrip just back-fills the id.
+    setSelectedThreadId(null);
+    setSidebarOpen(false);
     try {
-      if (!convexSiteUrl) {
-        throw new Error("NEXT_PUBLIC_CONVEX_URL sozlanmagan");
-      }
-      const token = await getConvexAuthToken();
-      const res = await fetch(`${convexSiteUrl}/api/threads`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Xatolik yuz berdi");
-      }
-      const data = (await res.json()) as { threadId: Id<"threads"> };
-      const threadId = data.threadId;
+      const threadId = await createThread({ userId });
       setSelectedThreadId(threadId);
-      setSidebarOpen(false); // Close sidebar on mobile
       toast.success("Yangi suhbat yaratildi");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Xatolik yuz berdi");
@@ -182,26 +155,8 @@ export function ChatInterface({
     const modelForCall = subjectOverride ?? selectedModel;
 
     if (!selectedThreadId) {
-      // Create new thread if none selected
       try {
-        if (!convexSiteUrl) {
-          throw new Error("NEXT_PUBLIC_CONVEX_URL sozlanmagan");
-        }
-        const token = await getConvexAuthToken();
-        const res = await fetch(`${convexSiteUrl}/api/threads`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({}),
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Xatolik yuz berdi");
-        }
-        const data = (await res.json()) as { threadId: Id<"threads"> };
-        const threadId = data.threadId;
+        const threadId = await createThread({ userId });
         setSelectedThreadId(threadId);
         await sendMessageToThread(threadId, content, modelForCall);
       } catch (error) {
@@ -220,29 +175,13 @@ export function ChatInterface({
   ) => {
     setIsGenerating(true);
     try {
-      if (!convexSiteUrl) {
-        throw new Error("NEXT_PUBLIC_CONVEX_URL sozlanmagan");
-      }
-      const token = await getConvexAuthToken();
-      const res = await fetch(
-        `${convexSiteUrl}/api/threads/${threadId}/messages`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            content,
-            model: getModelByType(model),
-            subject: model,
-          }),
-        }
-      );
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Javob olishda xatolik yuz berdi");
-      }
+      const userMessageId = await appendUserMessage({ threadId, content });
+      await generateAssistantReply({
+        threadId,
+        userMessageId,
+        model: getModelByType(model),
+        subject: model,
+      });
     } catch (error) {
       toast.error(
         error instanceof Error

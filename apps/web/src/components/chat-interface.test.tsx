@@ -6,16 +6,22 @@ const useQueryMock = vi.fn();
 vi.mock("convex/react", () => ({
 	useQuery: () => useQueryMock(),
 	useMutation: () => vi.fn(async () => undefined),
+	useAction: () => vi.fn(async () => undefined),
 }));
 
 vi.mock("@soravur/backend/convex/_generated/api", () => ({
 	api: {
-		messages: { listMessages: "messages.listMessages" },
+		messages: {
+			listMessages: "messages.listMessages",
+			appendUserMessage: "messages.appendUserMessage",
+		},
 		threads: {
 			listThreads: "threads.listThreads",
+			createThread: "threads.createThread",
 			archiveThread: "threads.archiveThread",
 			unarchiveThread: "threads.unarchiveThread",
 		},
+		chat: { generateAssistantReply: "chat.generateAssistantReply" },
 	},
 }));
 

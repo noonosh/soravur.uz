@@ -1,7 +1,6 @@
 "use client";
 
 import UserMenu from "@/components/user-menu";
-import { ChatInterface } from "@/components/chat-interface";
 import { ModelSelector, type ModelType } from "@/components/model-selector";
 import { SoravurIcon } from "@/components/soravur-logo";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +8,18 @@ import { api } from "@soravur/backend/convex/_generated/api";
 import { useConvexAuth, useQuery, useMutation } from "convex/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+// ChatInterface pulls in react-markdown, remark/rehype plugins and the
+// KaTeX CSS — ~150kB+ that nobody on the auth/redirect path needs.
+// Lazy-loading defers the chunk until the user is actually authenticated.
+const ChatInterface = dynamic(
+  () =>
+    import("@/components/chat-interface").then((m) => ({
+      default: m.ChatInterface,
+    })),
+  { ssr: false, loading: () => <ChatBootstrapSkeleton /> }
+);
 
 // Empty sidebar+main shell that matches the chat layout. Used during
 // the brief window between first paint and Convex auth/profile resolve
