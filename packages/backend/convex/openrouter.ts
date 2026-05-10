@@ -190,13 +190,11 @@ export class OpenRouterClient {
 
 // Uzbek language detection (basic heuristic).
 //
-// The goal is to reject obviously English/Russian/etc. messages, NOT to
-// gate every short or formula-heavy input. We bypass the heuristic when
-// the message is too short or too non-linguistic to make a reliable
-// judgement (math, code, mostly digits/symbols), and we additionally
-// reject when we see strong signals of another language (Cyrillic
-// letters that aren't in the Uzbek alphabet, dense English function
-// words, etc.).
+// Default stance: ACCEPT unless we have strong evidence the text is
+// English or Russian. The previous version required positive Uzbek
+// signals which produced false rejections on legitimate prompts that
+// happened to use only nouns/verbs outside the small function-word
+// list (e.g. literary titles like "Oybekning Qutlug‘ qon romani").
 export function isLikelyUzbek(text: string): boolean {
   const t = text.trim();
   if (t.length === 0) return false;
@@ -216,30 +214,52 @@ export function isLikelyUzbek(text: string): boolean {
   // a normal-prose message.
   if (/```|\$\$/.test(t)) return true;
 
+  // Positive Uzbek signals — when present, accept regardless of
+  // what else is in the text.
+  // Apostrophe class includes ASCII ', U+2018 ‘ , U+2019 ’ , U+02BB ʻ.
+  const APOS = "['‘’ʻ]";
+  const cyrillicUzbekLetters = /[ўғҳқ]/i;
+  const latinUzbekPatterns = new RegExp(
+    `(o${APOS}?\\s?z|o${APOS}|g${APOS}|sh|ch|yo|yu|ya)`,
+    "i"
+  );
+  const uzbekWords =
+    /\b(va|bilan|uchun|agar|lekin|siz|men|bu|u|ular|biz|bizning|sizning|qanday|qaysi|qancha|qanaqa|nima|nega|nimaga|nechta|qachon|qayerda|qayer|kim|shunday|shu|har|hamma|barcha|yoki|chunki|shuning|keyin|oldin|hozir|bugun|kecha|ertaga|vaqt|kun|yil|oy|masala|yechim|tushuntir|izoh|kabi|faqat|juda|aks|ham|emas|edi|degan|haqida|o[‘’ʻ']rta|to[‘’ʻ']g[‘’ʻ']ri|ko[‘’ʻ']rsat|aytib|bering|romani|she[‘’ʻ']r|adabiyot|matematika|tarix|fan)\b/i;
+  const uzbekWordsCyrillic =
+    /\b(ва|билан|учун|агар|лекин|сиз|мен|бу|у|улар|биз|бизнинг|сизнинг|қандай|қайси|нима|нега|қачон|қаерда|ким|шундай|ҳар|ҳамма|ёки|чунки|шунинг|кейин|олдин|ҳозир|бугун|кеча|эртага|каби|фақат|жуда|акс)\b/i;
+
+  if (
+    cyrillicUzbekLetters.test(t) ||
+    latinUzbekPatterns.test(t) ||
+    uzbekWords.test(t) ||
+    uzbekWordsCyrillic.test(t)
+  ) {
+    return true;
+  }
+
   // Strong reject: non-Uzbek Cyrillic letters (Russian-only letters)
   // dominate. Uzbek Cyrillic uses ў, ғ, ҳ, қ; Russian-specific letters
   // like ы, э, ъ, ь are not part of standard Uzbek Cyrillic.
   const russianOnlyLetters = (t.match(/[ыэъь]/gi) || []).length;
   if (russianOnlyLetters >= 2) return false;
 
-  // Uzbek Cyrillic-specific letters
-  const cyrillicUzbekLetters = /[ўғҳқ]/i;
-
-  // Uzbek Latin: apostrophe variants + digraphs often used in Uzbek
-  const latinUzbekPatterns = /(o['’ʻ]?\s?z|o['’ʻ]|g['’ʻ]|sh|ch|yo|yu|ya)/i;
-
-  // Common Uzbek function words (Latin + Cyrillic)
-  const uzbekWords =
-    /\b(va|bilan|uchun|agar|lekin|siz|men|bu|u|ular|biz|bizning|sizning|qanday|nima|nega|qachon|qayerda|kim|shunday|har|hamma|yoki|chunki|shuning|keyin|oldin|hozir|bugun|kecha|ertaga|vaqt|masala|yechim|tushuntir|izoh)\b/i;
-  const uzbekWordsCyrillic =
-    /\b(ва|билан|учун|агар|лекин|сиз|мен|бу|у|улар|биз|бизнинг|сизнинг|қандай|нима|нега|қачон|қаерда|ким|шундай|ҳар|ҳамма|ёки|чунки|шунинг|кейин|олдин|ҳозир|бугун|кеча|эртага)\b/i;
-
-  return (
-    cyrillicUzbekLetters.test(t) ||
-    latinUzbekPatterns.test(t) ||
-    uzbekWords.test(t) ||
-    uzbekWordsCyrillic.test(t)
+  // Strong reject: dense English function words. Counting unique hits
+  // (rather than total) so a sentence with one repeated word doesn't
+  // tip the scale; ≥2 distinct English function words against zero
+  // Uzbek signals is enough to call it.
+  const englishHits = new Set(
+    (
+      t.match(
+        /\b(the|and|is|are|was|were|this|that|these|those|with|from|have|has|been|will|would|should|could|what|when|where|why|how|please|hello|explain)\b/gi
+      ) || []
+    ).map((w) => w.toLowerCase())
   );
+  if (englishHits.size >= 2) return false;
+
+  // Otherwise accept — better to let an ambiguous message through and
+  // rely on the system prompt + retry loop than to block legitimate
+  // Uzbek input the heuristic doesn't recognise.
+  return true;
 }
 
 // Format assistant response
