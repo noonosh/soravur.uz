@@ -175,3 +175,41 @@ export const resetRateLimits = action({
 		return { deleted };
 	},
 });
+
+// Wipes better-auth JWKS + sessions + verification rows. Required after
+// rotating BETTER_AUTH_SECRET because the JWKS private keys are stored
+// encrypted with the old secret and decryption fails on every request.
+// Refuses outside local dev — production must rotate via the proper
+// flow (deploy new secret + accept session invalidation window).
+//
+// Usage from packages/backend/:
+//   bunx convex run auth:resetJwks
+export const resetJwks = action({
+	args: {},
+	handler: async (ctx): Promise<{ models: Record<string, number> }> => {
+		if (!isLocalDev()) {
+			throw new Error("resetJwks is only available in local dev");
+		}
+		// Drop session + verification rows alongside JWKS — old sessions
+		// are signed with keys that no longer exist, and pending email
+		// verification tokens were issued under the previous secret.
+		const models = ["jwks", "session", "verification"] as const;
+		const counts: Record<string, number> = {};
+		for (const model of models) {
+			let calls = 0;
+			while (true) {
+				const result: { isDone?: boolean } = await ctx.runMutation(
+					components.betterAuth.adapter.deleteMany,
+					{
+						input: { model },
+						paginationOpts: { cursor: null, numItems: 200 },
+					},
+				);
+				calls += 1;
+				if (result?.isDone !== false) break;
+			}
+			counts[model] = calls;
+		}
+		return { models: counts };
+	},
+});
