@@ -15,7 +15,14 @@ import { Button } from "./ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Menu, X } from "lucide-react";
+import { classifySubject } from "@/lib/classify-subject";
 import type { Doc, Id } from "@soravur/backend/convex/_generated/dataModel";
+
+const SUBJECT_LABELS: Record<ModelType, string> = {
+  maths: "Matematika",
+  literature: "Adabiyot",
+  programming: "Dasturlash",
+};
 
 interface ChatInterfaceProps {
   userId: Id<"users">;
@@ -145,14 +152,25 @@ export function ChatInterface({
     content: string,
     subjectOverride?: ModelType
   ) => {
-    // If a starter prompt was clicked, switch the model BEFORE sending so
-    // the dropdown reflects reality on the next render. The send call
-    // itself takes the override directly because the parent's selectedModel
-    // prop is still the previous value within this closure.
-    if (subjectOverride && subjectOverride !== selectedModel) {
-      onModelChange(subjectOverride);
+    // Resolution order, strongest signal first:
+    //   1. Explicit override (starter prompt click — user picked it).
+    //   2. Keyword classifier on the typed content — auto-corrects when
+    //      the dropdown disagrees with what the user actually asked,
+    //      since subject choice changes the system prompt and model
+    //      response quality.
+    //   3. Current dropdown selection.
+    const inferred = subjectOverride ? null : classifySubject(content);
+    const resolvedSubject =
+      subjectOverride ?? inferred ?? selectedModel;
+    if (resolvedSubject !== selectedModel) {
+      onModelChange(resolvedSubject);
+      // Tell the user when WE switched it (not when they did via a
+      // starter prompt — that's already self-evident).
+      if (!subjectOverride && inferred) {
+        toast.message(`Mavzu: ${SUBJECT_LABELS[inferred]}`);
+      }
     }
-    const modelForCall = subjectOverride ?? selectedModel;
+    const modelForCall = resolvedSubject;
 
     if (!selectedThreadId) {
       try {
